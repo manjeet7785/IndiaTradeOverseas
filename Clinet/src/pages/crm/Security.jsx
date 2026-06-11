@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FiShield, FiAlertTriangle, FiCheckCircle, FiEye, FiClock } from 'react-icons/fi';
-import api from '../../services/api';
+import api from '../../api/axiosInstance';
 
 export default function Security() {
   const [alerts, setAlerts] = useState([]);

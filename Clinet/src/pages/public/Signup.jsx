@@ -1,7 +1,19 @@
-import { React, useState } from 'react'
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { FiBriefcase, FiUser, FiMail, FiPhone, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
+import {
+  FiBriefcase,
+  FiUser,
+  FiMail,
+  FiPhone,
+  FiLock,
+  FiEye,
+  FiEyeOff,
+  FiUserPlus,
+  FiArrowRight,
+  FiShield,
+  FiTag
+} from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 const Signup = () => {
@@ -13,8 +25,8 @@ const Signup = () => {
     email: '',
     phone: '',
     password: '',
-    role: 'SALES',
-    department: 'SALES'
+    role: '',
+    department: ''
   });
 
   const { register } = useAuth();
@@ -27,210 +39,288 @@ const Signup = () => {
     try {
       const response = await register(formData);
       if (response.success) {
-        toast.success('Account created successfully!');
+        toast.success('Account created successfully! Welcome aboard! 🎉', {
+          style: {
+            borderRadius: '10px',
+            background: '#333',
+            color: '#fff',
+          },
+        });
         navigate('/login');
       }
     } catch (error) {
       console.error('Signup error:', error);
+      const errorMsg = error.response?.data?.message || 'Registration failed. Make sure Employee ID & email are unique.';
+      toast.error(errorMsg, {
+        style: {
+          borderRadius: '10px',
+          background: '#333',
+          color: '#fff',
+        },
+      });
     } finally {
       setLoading(false);
     }
   };
 
+  // Department options must match backend allowed values
+  const departmentOptions = [
+    { value: 'STONE', label: 'Stone Department' },
+    { value: 'COAL', label: 'Coal Department' },
+    { value: 'TEA', label: 'Tea Department' },
+    { value: 'RICE', label: 'Rice Department' },
+    { value: 'TRANSPORT', label: 'Transport Department' },
+    { value: 'ADMIN', label: 'Admin Department' },
+    { value: 'IT', label: 'IT Department' },
+    { value: 'PROCUREMENT', label: 'Procurement Department' },
+    { value: 'ACCOUNTS', label: 'Accounts Department' },
+    { value: 'HR', label: 'HR Department' },
+    { value: 'SALES', label: 'Sales Department' },
+    { value: 'CRM', label: 'CRM Department' },
+    { value: 'FINANCE', label: 'Finance Department' }
+  ];
+
+  // Role options must match backend allowed values
+  const roleOptions = [
+    { value: 'ADMIN', label: 'Admin' },
+    { value: 'MANAGER', label: 'Manager' },
+    { value: 'SALES', label: 'Sales' },
+    { value: 'PROCUREMENT', label: 'Procurement' },
+    { value: 'ACCOUNTS', label: 'Accounts' },
+    { value: 'HR', label: 'HR' },
+    { value: 'FINANCE', label: 'Finance' },
+    { value: 'IT', label: 'IT' },
+    { value: 'SOFTWARE_ENGINEER', label: 'Software Engineer' }
+  ];
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <div className="flex justify-center">
-            <div className="h-12 w-12 bg-blue-600 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-xl">I</span>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-gray-100 py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-32 w-80 h-80 bg-green-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-32 w-80 h-80 bg-blue-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-100 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse delay-2000"></div>
+      </div>
+
+      <div className="max-w-2xl w-full space-y-8 relative z-10">
+        {/* Header section */}
+        <div className="text-center">
+          <div className="flex justify-center mb-4">
+            <div className="relative group">
+              <div className="absolute inset-0 bg-green-600 rounded-2xl blur-lg opacity-75 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="relative h-16 w-16 bg-gradient-to-br from-green-600 to-green-500 rounded-2xl flex items-center justify-center shadow-lg transform transition-transform group-hover:scale-105">
+                <FiUserPlus className="h-8 w-8 text-white" />
+              </div>
             </div>
           </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create new account
+          <h2 className="text-4xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+            Create Account
           </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
-              sign in to existing account
-            </Link>
+          <p className="mt-3 text-gray-600">
+            Join our team and start your journey
           </p>
         </div>
 
+        {/* Form section */}
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="employeeId" className="block text-sm font-medium text-gray-700">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Employee ID */}
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                <FiBriefcase className="h-5 w-5 text-gray-400 group-focus-within:text-green-500 transition-colors duration-200" />
+              </div>
+              <input
+                id="employeeId"
+                name="employeeId"
+                type="text"
+                required
+                value={formData.employeeId}
+                onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
+                className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-white/50 backdrop-blur-sm placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow"
+                placeholder="Employee ID"
+              />
+              <label htmlFor="employeeId" className="absolute -top-2 left-3 px-1 text-xs text-gray-500 bg-white/80 rounded-md transition-all duration-200">
                 Employee ID *
               </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiBriefcase className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="employeeId"
-                  name="employeeId"
-                  type="text"
-                  required
-                  value={formData.employeeId}
-                  onChange={(e) => setFormData({ ...formData, employeeId: e.target.value })}
-                  className="appearance-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder="Employee ID"
-                />
-              </div>
             </div>
 
-            <div>
-              <label htmlFor="fullName" className="block text-sm font-medium text-gray-700">
+            {/* Full Name */}
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                <FiUser className="h-5 w-5 text-gray-400 group-focus-within:text-green-500 transition-colors duration-200" />
+              </div>
+              <input
+                id="fullName"
+                name="fullName"
+                type="text"
+                required
+                value={formData.fullName}
+                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-white/50 backdrop-blur-sm placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow"
+                placeholder="Full Name"
+              />
+              <label htmlFor="fullName" className="absolute -top-2 left-3 px-1 text-xs text-gray-500 bg-white/80 rounded-md transition-all duration-200">
                 Full Name *
               </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiUser className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="fullName"
-                  name="fullName"
-                  type="text"
-                  required
-                  value={formData.fullName}
-                  onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                  className="appearance-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder="Full Name"
-                />
-              </div>
             </div>
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email Address *
+            {/* Email */}
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                <FiMail className="h-5 w-5 text-gray-400 group-focus-within:text-green-500 transition-colors duration-200" />
+              </div>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                required
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-white/50 backdrop-blur-sm placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow"
+                placeholder="Email address"
+              />
+              <label htmlFor="email" className="absolute -top-2 left-3 px-1 text-xs text-gray-500 bg-white/80 rounded-md transition-all duration-200">
+                Email *
               </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiMail className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="appearance-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder="Email address"
-                />
-              </div>
             </div>
 
-            <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+            {/* Phone */}
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                <FiPhone className="h-5 w-5 text-gray-400 group-focus-within:text-green-500 transition-colors duration-200" />
+              </div>
+              <input
+                id="phone"
+                name="phone"
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-white/50 backdrop-blur-sm placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow"
+                placeholder="Phone number"
+              />
+              <label htmlFor="phone" className="absolute -top-2 left-3 px-1 text-xs text-gray-500 bg-white/80 rounded-md transition-all duration-200">
                 Phone Number
               </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiPhone className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="phone"
-                  name="phone"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="appearance-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder="Phone number"
-                />
-              </div>
             </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+            {/* Password */}
+            <div className="relative group md:col-span-2">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                <FiLock className="h-5 w-5 text-gray-400 group-focus-within:text-green-500 transition-colors duration-200" />
+              </div>
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                required
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="block w-full pl-10 pr-12 py-3 border border-gray-200 rounded-xl bg-white/50 backdrop-blur-sm placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow"
+                placeholder="Password"
+              />
+              <label htmlFor="password" className="absolute -top-2 left-3 px-1 text-xs text-gray-500 bg-white/80 rounded-md transition-all duration-200">
                 Password *
               </label>
-              <div className="mt-1 relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiLock className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="appearance-none relative block w-full px-3 py-2 pl-10 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                  placeholder="Password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                >
-                  {showPassword ? (
-                    <FiEyeOff className="h-5 w-5 text-gray-400" />
-                  ) : (
-                    <FiEye className="h-5 w-5 text-gray-400" />
-                  )}
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition-colors duration-200"
+              >
+                {showPassword ? <FiEyeOff className="h-5 w-5" /> : <FiEye className="h-5 w-5" />}
+              </button>
             </div>
 
-            <div>
-              <label htmlFor="role" className="block text-sm font-medium text-gray-700">
-                Role
-              </label>
+            {/* Role */}
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                <FiShield className="h-5 w-5 text-gray-400 group-focus-within:text-green-500 transition-colors duration-200" />
+              </div>
               <select
                 id="role"
                 name="role"
                 value={formData.role}
                 onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-white/50 backdrop-blur-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow appearance-none cursor-pointer"
               >
-                <option value="ADMIN">Admin</option>
-                <option value="MANAGER">Manager</option>
-                <option value="SALES">Sales</option>
-                <option value="PROCUREMENT">Procurement</option>
-                <option value="ACCOUNTS">Accounts</option>
+                {roleOptions.map(option => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
               </select>
+              <label htmlFor="role" className="absolute -top-2 left-3 px-1 text-xs text-gray-500 bg-white/80 rounded-md transition-all duration-200">
+                Role
+              </label>
             </div>
 
-            <div>
-              <label htmlFor="department" className="block text-sm font-medium text-gray-700">
-                Department
-              </label>
+            {/* Department */}
+            <div className="relative group">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none z-10">
+                <FiTag className="h-5 w-5 text-gray-400 group-focus-within:text-green-500 transition-colors duration-200" />
+              </div>
               <select
                 id="department"
                 name="department"
                 value={formData.department}
                 onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-white/50 backdrop-blur-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow appearance-none cursor-pointer"
               >
-                <option value="STONE">Stone</option>
-                <option value="COAL">Coal</option>
-                <option value="TEA">Tea</option>
-                <option value="RICE">Rice</option>
-                <option value="TRANSPORT">Transport</option>
-                <option value="ADMIN">Admin</option>
+                {departmentOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
+              <label htmlFor="department" className="absolute -top-2 left-3 px-1 text-xs text-gray-500 bg-white/80 rounded-md transition-all duration-200">
+                Department
+              </label>
             </div>
           </div>
 
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-              ) : (
-                'Create Account'
-              )}
-            </button>
+          {/* Submit button */}
+          <button
+            type="submit"
+            disabled={loading}
+            className="group relative w-full flex justify-center items-center gap-2 py-3 px-4 border border-transparent text-sm font-semibold rounded-xl text-white bg-gradient-to-r from-green-600 to-green-500 hover:from-green-700 hover:to-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-green-500/25"
+          >
+            {loading ? (
+              <div className="flex items-center gap-2">
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                <span>Creating account...</span>
+              </div>
+            ) : (
+              <>
+                <FiUserPlus className="h-4 w-4 group-hover:translate-x-0.5 transition-transform" />
+                <span>Create Account</span>
+              </>
+            )}
+          </button>
+
+          {/* Sign in link */}
+          <div className="text-center">
+            <p className="text-sm text-gray-600">
+              Already have an account?{' '}
+              <Link
+                to="/login"
+                className="font-semibold text-green-600 hover:text-green-500 transition-colors duration-200 inline-flex items-center gap-1 group"
+              >
+                Sign in
+                <FiArrowRight className="h-3 w-3 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
+            </p>
           </div>
         </form>
+
+        {/* Divider */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-gray-200"></div>
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-transparent text-gray-400">Secure registration</span>
+          </div>
+        </div>
       </div>
     </div>
   );
-}
+};
 
 export default Signup;

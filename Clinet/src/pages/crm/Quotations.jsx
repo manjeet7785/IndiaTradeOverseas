@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { quotationService } from '../../services/quotationService';
+import { quotationsApi } from '../../api/quotations';
 import { FiCheck, FiX, FiEye } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
@@ -13,7 +13,7 @@ export default function Quotations() {
 
   const fetchQuotations = async () => {
     try {
-      const response = await quotationService.getPendingQuotations();
+      const response = await quotationsApi.getPendingQuotations();
       if (response.success) {
         setQuotations(response.data.quotations);
       }
@@ -28,7 +28,7 @@ export default function Quotations() {
     const price = prompt('Enter approved price:', approvedPrice);
     if (price) {
       try {
-        const response = await quotationService.approveQuotation(id, { approvedPrice: parseFloat(price) });
+        const response = await quotationsApi.approveQuotation(id, { approvedPrice: parseFloat(price) });
         if (response.success) {
           toast.success('Quotation approved successfully');
           fetchQuotations();
@@ -43,7 +43,7 @@ export default function Quotations() {
     const reason = prompt('Enter rejection reason:');
     if (reason) {
       try {
-        const response = await quotationService.rejectQuotation(id, { marginNote: reason });
+        const response = await quotationsApi.rejectQuotation(id, { marginNote: reason });
         if (response.success) {
           toast.success('Quotation rejected');
           fetchQuotations();

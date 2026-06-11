@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { leadService } from '../../services/leadService';
+import { leadsApi } from '../../api/leads';
 import { FiSend, FiCheckCircle } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
@@ -22,7 +22,7 @@ export default function QuoteRequest() {
     setSubmitting(true);
 
     try {
-      const response = await leadService.createLead(formData);
+      const response = await leadsApi.createLead(formData);
       if (response.success) {
         setSubmitted(true);
         toast.success('Quote request submitted successfully! Our team will contact you soon.');
@@ -42,6 +42,7 @@ export default function QuoteRequest() {
       }
     } catch (error) {
       console.error('Error submitting quote request:', error);
+      toast.error('Failed to submit request. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -49,13 +50,15 @@ export default function QuoteRequest() {
 
   if (submitted) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="card text-center max-w-md mx-auto">
-          <div className="inline-flex p-3 bg-green-100 rounded-full mb-4">
-            <FiCheckCircle className="text-green-600" size={48} />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 flex items-center justify-center">
+        <div className="bg-white p-8 border border-gray-100 rounded-2xl shadow-xl text-center max-w-md w-full transform transition-all duration-300 scale-100">
+          <div className="inline-flex p-4 bg-emerald-50 rounded-full mb-5 text-emerald-600 animate-bounce">
+            <FiCheckCircle size={44} />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Request Submitted!</h2>
-          <p className="text-gray-600">Thank you for your interest. Our team will contact you within 24 hours.</p>
+          <p className="text-gray-500 text-sm sm:text-base leading-relaxed">
+            Thank you for your interest. Our team will contact you within 24 hours.
+          </p>
         </div>
       </div>
     );
@@ -63,70 +66,80 @@ export default function QuoteRequest() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="text-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Request a Quote</h1>
-        <p className="text-gray-600 mt-4">Fill out the form below and our team will get back to you with the best price</p>
+      {/* Heading Section */}
+      <div className="text-center mb-10">
+        <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
+          Request a Quote
+        </h1>
+        <p className="text-base sm:text-lg text-gray-500 mt-3 max-w-xl mx-auto">
+          Fill out the form below and our team will get back to you with the best competitive price.
+        </p>
       </div>
 
-      <div className="card">
+      {/* Form Container Card */}
+      <div className="bg-white border border-gray-200 shadow-sm rounded-2xl p-6 sm:p-10">
         <form onSubmit={handleSubmit} className="space-y-6">
+
+          {/* Row 1: Name & Company */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="label">Full Name *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name <span className="text-rose-500">*</span></label>
               <input
                 type="text"
                 required
                 value={formData.customerName}
                 onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                className="input"
+                className="block w-full rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition duration-150 ease-in-out text-sm"
                 placeholder="Enter your full name"
               />
             </div>
             <div>
-              <label className="label">Company Name</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Company Name</label>
               <input
                 type="text"
                 value={formData.companyName}
                 onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
-                className="input"
+                className="block w-full rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition duration-150 ease-in-out text-sm"
                 placeholder="Enter your company name"
               />
             </div>
           </div>
 
+          {/* Row 2: Phone & Email */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="label">Phone Number *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Phone Number <span className="text-rose-500">*</span></label>
               <input
                 type="tel"
                 required
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="input"
+                className="block w-full rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition duration-150 ease-in-out text-sm"
                 placeholder="Enter your phone number"
               />
             </div>
             <div>
-              <label className="label">Email Address *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address <span className="text-rose-500">*</span></label>
               <input
                 type="email"
                 required
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="input"
+                className="block w-full rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition duration-150 ease-in-out text-sm"
                 placeholder="Enter your email address"
               />
             </div>
           </div>
 
+          {/* Row 3: Product & Quantity */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="label">Product Category *</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Product Category <span className="text-rose-500">*</span></label>
               <select
                 required
                 value={formData.productCategory}
                 onChange={(e) => setFormData({ ...formData, productCategory: e.target.value })}
-                className="input"
+                className="block w-full rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition duration-150 ease-in-out text-sm bg-white"
               >
                 <option value="">Select a product</option>
                 <option value="STONE">Natural Stones</option>
@@ -136,45 +149,52 @@ export default function QuoteRequest() {
               </select>
             </div>
             <div>
-              <label className="label">Quantity</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1.5">Quantity</label>
               <input
                 type="text"
                 value={formData.quantity}
                 onChange={(e) => setFormData({ ...formData, quantity: e.target.value })}
-                className="input"
+                className="block w-full rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition duration-150 ease-in-out text-sm"
                 placeholder="e.g., 100 tons, 5000 kg"
               />
             </div>
           </div>
 
+          {/* Destination */}
           <div>
-            <label className="label">Destination Port/City</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Destination Port/City</label>
             <input
               type="text"
               value={formData.destination}
               onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
-              className="input"
+              className="block w-full rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition duration-150 ease-in-out text-sm"
               placeholder="Enter destination port or city"
             />
           </div>
 
+          {/* Requirements Message */}
           <div>
-            <label className="label">Additional Requirements</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Additional Requirements</label>
             <textarea
               rows={4}
               value={formData.message}
               onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-              className="input"
+              className="block w-full rounded-lg border border-gray-300 px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition duration-150 ease-in-out text-sm resize-none"
               placeholder="Tell us more about your requirements, specifications, or any special requests..."
             ></textarea>
           </div>
 
-          <button type="submit" disabled={submitting} className="btn-primary w-full flex items-center justify-center space-x-2">
+          {/* Action Button */}
+          <button
+            type="submit"
+            disabled={submitting}
+            className="w-full flex items-center justify-center space-x-2 rounded-xl bg-indigo-600 px-5 py-3.5 text-sm font-semibold text-white shadow-md hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none transition-all duration-150"
+          >
             {submitting ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
             ) : (
               <>
-                <FiSend size={18} />
+                <FiSend size={18} className="transform -rotate-12 transition-transform group-hover:translate-x-1" />
                 <span>Submit Quote Request</span>
               </>
             )}

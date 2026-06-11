@@ -10,10 +10,11 @@ import {
   FiFolder,
   FiShield,
   FiBarChart2,
-  FiSettings
+  FiSettings,
+  FiX
 } from 'react-icons/fi';
 
-export default function Sidebar() {
+export default function Sidebar({ onClose }) {
   const { user } = useAuth();
 
   const menuItems = [
@@ -26,16 +27,28 @@ export default function Sidebar() {
   ];
 
   const adminMenuItems = [
-    { to: '/crm/users', label: 'Users', icon: FiSettings },
+    { to: '/crm/admin', label: 'Admin Panel', icon: FiSettings },
+    { to: '/crm/users', label: 'Users', icon: FiUsers },
     { to: '/crm/security', label: 'Security', icon: FiShield },
     { to: '/crm/reports', label: 'Reports', icon: FiBarChart2 },
   ];
 
   return (
-    <aside className="w-64 bg-gray-900 text-white flex flex-col">
-      <div className="p-6 border-b border-gray-800">
-        <h1 className="text-xl font-bold">ITO Exim CRM</h1>
-        <p className="text-sm text-gray-400 mt-1">{user?.role}</p>
+    <aside className="h-full bg-gray-900 text-white flex flex-col">
+      <div className="p-6 border-b border-gray-800 flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-bold">ITO Exim CRM</h1>
+          <p className="text-sm text-gray-400 mt-1">{user?.role}</p>
+        </div>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            className="md:hidden rounded-lg p-2 text-gray-300 hover:bg-gray-800 hover:text-white transition"
+          >
+            <FiX size={20} />
+          </button>
+        )}
       </div>
 
       <nav className="flex-1 py-4">

@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { leadService } from '../../services/leadService';
-import { quotationService } from '../../services/quotationService';
-import { FiArrowLeft, FiActivity, FiFileText, FiTruck, FiDollarSign, FiSend } from 'react-icons/fi';
+import { leadsApi } from '../../api/leads';
+import { quotationsApi } from '../../api/quotations';
+import { adminApi } from '../../api/admin';
+import { useAuth } from '../../hooks/useAuth';
+import { FiArrowLeft, FiActivity, FiFileText, FiTruck, FiDollarSign, FiSend, FiTrash2 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 export default function LeadDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [lead, setLead] = useState(null);
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,18 +19,40 @@ export default function LeadDetail() {
   const [newActivity, setNewActivity] = useState({ note: '', actionType: 'FOLLOW_UP', nextFollowupAt: '' });
   const [quotationData, setQuotationData] = useState({ employeeRequestedPrice: '', paymentTerms: '', validityDays: 7 });
 
+  const [users, setUsers] = useState([]);
+  const [assignee, setAssignee] = useState('');
+  const [deptAssignee, setDeptAssignee] = useState('');
+  const [isAssigning, setIsAssigning] = useState(false);
+
   const stages = ['NEW_LEAD', 'ASSIGNED', 'CONTACTED', 'QUOTATION_REQUIRED', 'QUOTATION_REQUESTED', 'QUOTATION_SHARED', 'DISPATCH_PLANNED', 'PAYMENT_PENDING', 'CLOSED_WON', 'CLOSED_LOST'];
+  const departments = ['STONE', 'COAL', 'TEA', 'RICE', 'TRANSPORT', 'ADMIN', 'IT', 'PROCUREMENT', 'ACCOUNTS', 'HR', 'SALES'];
 
   useEffect(() => {
     fetchLeadDetails();
-  }, [id]);
+    if (user?.role === 'ADMIN' || user?.role === 'MANAGER') {
+      fetchUsers();
+    }
+  }, [id, user]);
+
+  const fetchUsers = async () => {
+    try {
+      const response = await adminApi.getUsers();
+      if (response.success) {
+        setUsers(response.data.users || []);
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+    }
+  };
 
   const fetchLeadDetails = async () => {
     try {
-      const response = await leadService.getLeadById(id);
+      const response = await leadsApi.getLeadById(id);
       if (response.success) {
         setLead(response.data.lead);
         setActivities(response.data.activities);
+        setAssignee(response.data.lead.assignedTo?._id || response.data.lead.assignedTo || '');
+        setDeptAssignee(response.data.lead.assignedDepartment || '');
       }
     } catch (error) {
       console.error('Error fetching lead details:', error);
@@ -36,9 +61,44 @@ export default function LeadDetail() {
     }
   };
 
+  const handleDeleteLead = async () => {
+    if (window.confirm('Are you sure you want to permanently delete this task/lead? This will delete all activity logs for it.')) {
+      try {
+        const response = await leadsApi.deleteLead(id);
+        if (response.success) {
+          toast.success('Lead deleted successfully');
+          navigate('/crm/leads');
+        }
+      } catch (error) {
+        console.error('Error deleting lead:', error);
+        toast.error('Failed to delete lead');
+      }
+    }
+  };
+
+  const handleAssign = async (e) => {
+    e.preventDefault();
+    setIsAssigning(true);
+    try {
+      const response = await adminApi.assignLead(id, {
+        assignedTo: assignee || null,
+        assignedDepartment: deptAssignee || null
+      });
+      if (response.success) {
+        toast.success('Lead assignment updated successfully');
+        fetchLeadDetails();
+      }
+    } catch (error) {
+      console.error('Error updating assignment:', error);
+      toast.error('Failed to update assignment');
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
   const handleStageChange = async (newStage) => {
     try {
-      const response = await leadService.updateStage(id, { newStage });
+      const response = await leadsApi.updateStage(id, { newStage });
       if (response.success) {
         toast.success(`Stage updated to ${newStage.replace(/_/g, ' ')}`);
         fetchLeadDetails();
@@ -51,7 +111,7 @@ export default function LeadDetail() {
   const handleAddActivity = async (e) => {
     e.preventDefault();
     try {
-      const response = await leadService.addActivity(id, newActivity);
+      const response = await leadsApi.addActivity(id, newActivity);
       if (response.success) {
         toast.success('Activity added successfully');
         setShowActivityModal(false);
@@ -66,7 +126,7 @@ export default function LeadDetail() {
   const handleRequestQuotation = async (e) => {
     e.preventDefault();
     try {
-      const response = await quotationService.requestQuotation({ leadId: id, ...quotationData });
+      const response = await quotationsApi.requestQuotation({ leadId: id, ...quotationData });
       if (response.success) {
         toast.success('Quotation requested successfully');
         setShowQuotationModal(false);
@@ -110,6 +170,8 @@ export default function LeadDetail() {
     );
   }
 
+  const selectedUser = users.find((u) => u._id === assignee);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -132,18 +194,27 @@ export default function LeadDetail() {
             <FiActivity size={18} />
             <span>Add Activity</span>
           </button>
+          {user?.role === 'ADMIN' && (
+            <button
+              onClick={handleDeleteLead}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg transition font-medium flex items-center space-x-2"
+            >
+              <FiTrash2 size={18} />
+              <span>Delete Task</span>
+            </button>
+          )}
         </div>
       </div>
 
       {/* Lead Info Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
         <div className="card">
           <p className="text-sm text-gray-600">Phone</p>
-          <p className="text-lg font-semibold mt-1">{lead.phoneMasked || 'N/A'}</p>
+          <p className="text-lg font-semibold mt-1 text-ellipsis overflow-hidden">{lead.phoneMasked || 'N/A'}</p>
         </div>
         <div className="card">
           <p className="text-sm text-gray-600">Email</p>
-          <p className="text-lg font-semibold mt-1">{lead.emailMasked || 'N/A'}</p>
+          <p className="text-lg font-semibold mt-1 text-ellipsis overflow-hidden">{lead.emailMasked || 'N/A'}</p>
         </div>
         <div className="card">
           <p className="text-sm text-gray-600">Product</p>
@@ -153,7 +224,104 @@ export default function LeadDetail() {
           <p className="text-sm text-gray-600">Quantity</p>
           <p className="text-lg font-semibold mt-1">{lead.quantity || 'N/A'}</p>
         </div>
+        <div className="card">
+          <p className="text-sm text-gray-600">Assigned To</p>
+          <p className="text-lg font-semibold mt-1 text-ellipsis overflow-hidden text-blue-600">
+            {lead.assignedTo?.fullName || lead.assignedTo || 'Unassigned'}
+          </p>
+        </div>
+        <div className="card">
+          <p className="text-sm text-gray-600">Department</p>
+          <p className="text-lg font-semibold mt-1 text-ellipsis overflow-hidden text-indigo-600">
+            {lead.assignedDepartment || 'None'}
+          </p>
+        </div>
       </div>
+
+      {/* Assignment Management (Admin/Manager Only) */}
+      {(user?.role === 'ADMIN' || user?.role === 'MANAGER') && (
+        <div className="card">
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Assign Task / Lead</h2>
+          <form onSubmit={handleAssign} className="flex flex-col md:flex-row gap-4 items-end">
+            <div className="flex-1 w-full">
+              <label className="label">Assign to Employee</label>
+              <select
+                value={assignee}
+                onChange={(e) => setAssignee(e.target.value)}
+                className="input"
+              >
+                <option value="">Select Employee (Unassigned)</option>
+                {users.map((u) => (
+                  <option key={u._id} value={u._id}>
+                    {u.fullName} ({u.role} - {u.department})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="flex-1 w-full">
+              <label className="label">Assign to Department</label>
+              <select
+                value={deptAssignee}
+                onChange={(e) => setDeptAssignee(e.target.value)}
+                className="input"
+              >
+                <option value="">Select Department (None)</option>
+                {departments.map((dept) => (
+                  <option key={dept} value={dept}>
+                    {dept}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button
+              type="submit"
+              disabled={isAssigning}
+              className="btn-primary w-full md:w-auto px-6 whitespace-nowrap"
+            >
+              {isAssigning ? 'Saving...' : 'Update Assignment'}
+            </button>
+          </form>
+
+          {/* Dynamic visual preview of assignment */}
+          <div className="mt-5 p-4 bg-slate-50 rounded-xl border border-slate-200">
+            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Assignment Preview</h3>
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-500">Employee:</span>
+                {selectedUser ? (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+                    👤 {selectedUser.fullName} ({selectedUser.role})
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                    Unassigned
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-500">Department:</span>
+                {deptAssignee ? (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-800 border border-indigo-200">
+                    🏢 {deptAssignee}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                    None
+                  </span>
+                )}
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              {selectedUser
+                ? `This task will be assigned to ${selectedUser.fullName} (${selectedUser.role}).`
+                : 'No specific employee will be assigned to this task.'}
+              {deptAssignee
+                ? ` It will be routed to the ${deptAssignee} department.`
+                : ' It will not belong to any department.'}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Stage Management */}
       <div className="card">
@@ -164,8 +332,8 @@ export default function LeadDetail() {
               key={stage}
               onClick={() => handleStageChange(stage)}
               className={`px-3 py-1 rounded-full text-sm font-medium transition ${lead.stage === stage
-                  ? getStageColor(stage) + ' ring-2 ring-offset-2 ring-primary-500'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? getStageColor(stage) + ' ring-2 ring-offset-2 ring-primary-500'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
             >
               {stage.replace(/_/g, ' ')}

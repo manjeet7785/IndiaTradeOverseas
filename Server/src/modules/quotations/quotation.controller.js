@@ -1,3 +1,4 @@
+
 import { Quotation } from './quotation.model.js';
 import { AuditLog } from '../security-audit/auditLog.model.js';
 

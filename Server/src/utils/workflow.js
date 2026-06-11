@@ -35,7 +35,6 @@ function generateLeadCode() {
 function canAccessLead(user, lead) {
   if (!user) return false;
   if (user.role === 'ADMIN') return true;
-  if (user.role === 'MANAGER') return true;
   if (lead.assignedTo && lead.assignedTo.toString() === user._id.toString()) return true;
   return false;
 }

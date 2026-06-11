@@ -99,11 +99,37 @@ async function softDeleteDocument(req, res) {
   }
 }
 
+async function listDocuments(req, res) {
+  try {
+    const Lead = require('../models/Lead');
+    let filter = { isDeleted: false };
+    if (req.user.role !== 'ADMIN') {
+      const myLeads = await Lead.find({ assignedTo: req.user._id }).select('_id');
+      const myLeadIds = myLeads.map(l => l._id);
+
+      filter.$or = [
+        { uploadedBy: req.user._id },
+        { ownerType: 'LEAD', ownerId: { $in: myLeadIds } }
+      ];
+    }
+    const documents = await Document.find(filter).sort({ createdAt: -1 });
+    return ok(res, { documents });
+  } catch (error) {
+    return fail(res, 500, 'SERVER_ERROR', error.message);
+  }
+}
+
 module.exports = {
   upload,
   uploadDocument,
   getDocument,
   downloadDocument,
   updateAccessLevel,
-  softDeleteDocument
+  softDeleteDocument,
+  listDocuments
 };
+
+
+
+
+

@@ -23,3 +23,9 @@ const leadSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 export const Lead = mongoose.model('Lead', leadSchema);
+
+
+
+
+
+

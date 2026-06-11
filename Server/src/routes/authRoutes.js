@@ -4,14 +4,8 @@ const { register, login, me } = require('../controllers/authController');
 
 
 
-// Example route
-router.post('/register', (req, res) => {
-  res.json({ message: 'Register route' });
-});
-
-router.post('/login', (req, res) => {
-  res.json({ message: 'Login route' });
-});
+router.post('/register', register);
+router.post('/login', login);
 
 
 router.get('/me', auth, me);

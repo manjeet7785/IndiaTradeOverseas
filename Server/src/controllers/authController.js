@@ -4,7 +4,7 @@ const User = require('../models/User');
 const { ok, fail } = require('../utils/response');
 
 function signToken(user) {
-  return jwt.sign({ sub: user._id.toString(), role: user.role }, process.env.JWT_SECRET || 'ito-task-secret', {
+  return jwt.sign({ sub: user._id.toString(), role: user.role }, process.env.JWT_SECRET, {
     expiresIn: '1d'
   });
 }
@@ -17,9 +17,14 @@ async function register(req, res) {
       return fail(res, 400, 'VALIDATION_FAILED', 'employeeId, fullName, email, and password are required');
     }
 
-    const exists = await User.findOne({ $or: [{ email }, { employeeId }] });
-    if (exists) {
-      return fail(res, 409, 'DUPLICATE_FOUND', 'User already exists');
+    const emailExists = await User.findOne({ email });
+    if (emailExists) {
+      return fail(res, 409, 'DUPLICATE_FOUND', 'User with this email already exists');
+    }
+
+    const employeeIdExists = await User.findOne({ employeeId });
+    if (employeeIdExists) {
+      return fail(res, 409, 'DUPLICATE_FOUND', 'User with this Employee ID already exists');
     }
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -27,6 +32,13 @@ async function register(req, res) {
 
     return ok(res, { user: sanitizeUser(user), token: signToken(user) }, 201);
   } catch (error) {
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern || {})[0] || 'field';
+      return fail(res, 409, 'DUPLICATE_FOUND', `User with this ${field} already exists`);
+    }
+    if (error.name === 'ValidationError') {
+      return fail(res, 400, 'VALIDATION_FAILED', error.message);
+    }
     return fail(res, 500, 'SERVER_ERROR', error.message);
   }
 }
@@ -68,3 +80,6 @@ function sanitizeUser(user) {
 }
 
 module.exports = { register, login, me };
+
+
+

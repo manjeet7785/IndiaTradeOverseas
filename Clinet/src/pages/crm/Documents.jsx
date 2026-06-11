@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FiUpload, FiDownload, FiTrash2, FiEye, FiLock, FiUnlock } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-import api from '../../services/api';
+import { documentsApi } from '../../api/documents';
 
 export default function Documents() {
   const [documents, setDocuments] = useState([]);
@@ -20,9 +20,9 @@ export default function Documents() {
 
   const fetchDocuments = async () => {
     try {
-      const response = await api.get('/documents');
-      if (response.data.success) {
-        setDocuments(response.data.data.documents || []);
+      const response = await documentsApi.getDocuments();
+      if (response.success) {
+        setDocuments(response.data.documents || []);
       }
     } catch (error) {
       console.error('Error fetching documents:', error);
@@ -49,10 +49,8 @@ export default function Documents() {
     data.append('accessLevel', formData.accessLevel);
 
     try {
-      const response = await api.post('/documents/upload', data, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      if (response.data.success) {
+      const response = await documentsApi.uploadDocument(data);
+      if (response.success) {
         toast.success('Document uploaded successfully');
         setShowModal(false);
         setSelectedFile(null);
@@ -66,8 +64,8 @@ export default function Documents() {
 
   const downloadDocument = async (id, fileName) => {
     try {
-      const response = await api.get(`/documents/${id}/download`, { responseType: 'blob' });
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const blob = await documentsApi.downloadDocument(id);
+      const url = window.URL.createObjectURL(new Blob([blob]));
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', fileName);
@@ -82,8 +80,8 @@ export default function Documents() {
 
   const updateAccessLevel = async (id, accessLevel) => {
     try {
-      const response = await api.patch(`/documents/${id}/access-level`, { accessLevel });
-      if (response.data.success) {
+      const response = await documentsApi.updateAccessLevel(id, accessLevel);
+      if (response.success) {
         toast.success(`Access level updated to ${accessLevel}`);
         fetchDocuments();
       }
@@ -95,8 +93,8 @@ export default function Documents() {
   const deleteDocument = async (id) => {
     if (window.confirm('Are you sure you want to delete this document?')) {
       try {
-        const response = await api.delete(`/documents/${id}`);
-        if (response.data.success) {
+        const response = await documentsApi.deleteDocument(id);
+        if (response.success) {
           toast.success('Document deleted successfully');
           fetchDocuments();
         }

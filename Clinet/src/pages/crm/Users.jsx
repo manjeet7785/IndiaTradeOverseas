@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FiUserPlus, FiEdit2, FiTrash2, FiCheckCircle, FiXCircle } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-import api from '../../services/api';
+import { adminApi } from '../../api/admin';
 
 export default function Users() {
   const [users, setUsers] = useState([]);
@@ -23,9 +23,9 @@ export default function Users() {
 
   const fetchUsers = async () => {
     try {
-      const response = await api.get('/admin/users');
-      if (response.data.success) {
-        setUsers(response.data.data.users || []);
+      const response = await adminApi.getUsers();
+      if (response.success) {
+        setUsers(response.data.users || []);
       }
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -37,9 +37,9 @@ export default function Users() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.post('/auth/register', formData);
-      if (response.data.success) {
-        toast.success('User created successfully');
+      const response = await adminApi.createUser(formData);
+      if (response.success) {
+        toast.success('Employee created successfully');
         setShowModal(false);
         setFormData({
           employeeId: '',
@@ -54,14 +54,15 @@ export default function Users() {
       }
     } catch (error) {
       console.error('Error creating user:', error);
+      toast.error(error.response?.data?.message || 'Failed to create employee');
     }
   };
 
   const toggleUserStatus = async (id, currentStatus) => {
     if (!currentStatus) {
       try {
-        const response = await api.patch(`/admin/users/${id}/activate`);
-        if (response.data.success) {
+        const response = await adminApi.activateUser(id);
+        if (response.success) {
           toast.success('User activated successfully');
           fetchUsers();
         }
@@ -70,13 +71,28 @@ export default function Users() {
       }
     } else {
       try {
-        const response = await api.patch(`/admin/users/${id}/deactivate`);
-        if (response.data.success) {
+        const response = await adminApi.deactivateUser(id);
+        if (response.success) {
           toast.success('User deactivated successfully');
           fetchUsers();
         }
       } catch (error) {
         console.error('Error deactivating user:', error);
+      }
+    }
+  };
+
+  const handleDeleteUser = async (userId) => {
+    if (window.confirm('Are you sure you want to permanently delete this employee? This will unassign all their leads/tasks.')) {
+      try {
+        const response = await adminApi.deleteUser(userId);
+        if (response.success) {
+          toast.success('User deleted successfully');
+          fetchUsers();
+        }
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        toast.error('Failed to delete user');
       }
     }
   };
@@ -135,9 +151,12 @@ export default function Users() {
                       {user.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  <td className="py-3 px-4">
-                    <button onClick={() => toggleUserStatus(user._id, user.isActive)} className={`${user.isActive ? 'text-red-600 hover:text-red-700' : 'text-green-600 hover:text-green-700'}`}>
+                  <td className="py-3 px-4 flex items-center space-x-3">
+                    <button onClick={() => toggleUserStatus(user._id, user.isActive)} className={`${user.isActive ? 'text-yellow-600 hover:text-yellow-700' : 'text-green-600 hover:text-green-700'}`} title={user.isActive ? "Deactivate" : "Activate"}>
                       {user.isActive ? <FiXCircle size={18} /> : <FiCheckCircle size={18} />}
+                    </button>
+                    <button onClick={() => handleDeleteUser(user._id)} className="text-red-600 hover:text-red-700" title="Delete Employee">
+                      <FiTrash2 size={18} />
                     </button>
                   </td>
                 </tr>

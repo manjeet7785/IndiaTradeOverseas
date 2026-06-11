@@ -2,7 +2,7 @@ const router = require('express').Router();
 const auth = require('../middleware/auth');
 const rbac = require('../middleware/rbac');
 const User = require('../models/User');
-const { dashboardSummary, pipeline, employeePerformance, securityAlerts, quotationQueue, assignLead, deactivateUser, exportPermission } = require('../controllers/dashboard');
+const { dashboardSummary, pipeline, employeePerformance, securityAlerts, quotationQueue, assignLead, deactivateUser, exportPermission, deleteUser, deleteLead } = require('../controllers/dashboard');
 const { adminSummary } = require('../controllers/adminController');
 const { ok, fail } = require('../utils/response');
 
@@ -99,10 +99,16 @@ router.patch('/users/:userId/department', async (req, res) => {
 // Update export permission
 router.patch('/users/:userId/export-permission', exportPermission);
 
+// Delete user (employee)
+router.delete('/users/:userId', deleteUser);
+
 // ============= LEAD MANAGEMENT ROUTES =============
 
 // Assign lead to user
 router.patch('/leads/:leadId/assign', assignLead);
+
+// Delete lead (task)
+router.delete('/leads/:leadId', deleteLead);
 
 // Get all leads (admin view)
 router.get('/leads', async (req, res) => {

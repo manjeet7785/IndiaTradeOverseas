@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { FiUsers, FiShield, FiBarChart2, FiSettings, FiUserCheck, FiAlertCircle, FiFileText, FiDollarSign } from 'react-icons/fi';
+import { FiUsers, FiShield, FiBarChart2, FiSettings, FiUserCheck, FiAlertCircle, FiFileText, FiDollarSign, FiMessageSquare, FiSend } from 'react-icons/fi';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import api from '../../services/api';
+import { adminApi } from '../../api/admin';
+import { chatApi } from '../../api/chat';
 import { useAuth } from '../../hooks/useAuth';
 import toast from 'react-hot-toast';
 
@@ -14,25 +15,110 @@ export default function AdminPanel() {
   const [pipeline, setPipeline] = useState([]);
   const [activeTab, setActiveTab] = useState('overview');
 
+  const [chatSessions, setChatSessions] = useState([]);
+  const [selectedSessionId, setSelectedSessionId] = useState(null);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [replyText, setReplyText] = useState('');
+
   useEffect(() => {
     if (user?.role === 'ADMIN') {
       fetchAdminData();
     }
   }, [user]);
 
+  // Poll active chat list and current chat messages every 4 seconds when in 'chats' tab
+  useEffect(() => {
+    let intervalId;
+    if (activeTab === 'chats') {
+      fetchChatSessions();
+      intervalId = setInterval(() => {
+        fetchChatSessions();
+        if (selectedSessionId) {
+          fetchChatMessages(selectedSessionId);
+        }
+      }, 4000);
+    }
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [activeTab, selectedSessionId]);
+
+  const fetchChatSessions = async () => {
+    try {
+      const response = await chatApi.getAdminSessions();
+      if (response.success) {
+        setChatSessions(response.data.sessions || []);
+      }
+    } catch (error) {
+      console.error('Error fetching admin chat sessions:', error);
+    }
+  };
+
+  const fetchChatMessages = async (sessionId) => {
+    try {
+      const response = await chatApi.getMessages(sessionId);
+      if (response.success) {
+        setChatMessages(response.data.messages || []);
+      }
+    } catch (error) {
+      console.error('Error fetching admin chat messages:', error);
+    }
+  };
+
+  const handleSelectSession = (sessionId) => {
+    setSelectedSessionId(sessionId);
+    fetchChatMessages(sessionId);
+  };
+
+  const handleSendReply = async (e) => {
+    e.preventDefault();
+    if (!replyText.trim() || !selectedSessionId) return;
+    const text = replyText;
+    setReplyText('');
+
+    try {
+      const response = await chatApi.sendAdminReply(selectedSessionId, text);
+      if (response.success) {
+        fetchChatMessages(selectedSessionId);
+      }
+    } catch (error) {
+      console.error('Error sending admin reply:', error);
+      toast.error('Failed to send message');
+    }
+  };
+
+  const handleResolveSession = async (sessionId) => {
+    if (window.confirm('Are you sure you want to resolve this chat session?')) {
+      try {
+        const response = await chatApi.resolveSession(sessionId);
+        if (response.success) {
+          toast.success('Chat resolved');
+          fetchChatSessions();
+          if (selectedSessionId === sessionId) {
+            setSelectedSessionId(null);
+            setChatMessages([]);
+          }
+        }
+      } catch (error) {
+        console.error('Error resolving chat session:', error);
+        toast.error('Failed to resolve session');
+      }
+    }
+  };
+
   const fetchAdminData = async () => {
     try {
       const [summaryRes, usersRes, alertsRes, pipelineRes] = await Promise.all([
-        api.get('/admin/dashboard/summary'),
-        api.get('/admin/users'),
-        api.get('/security/alerts'),
-        api.get('/admin/dashboard/pipeline')
+        adminApi.getDashboardSummary(),
+        adminApi.getUsers(),
+        adminApi.getSecurityAlerts(),
+        adminApi.getPipeline()
       ]);
 
-      if (summaryRes.data.success) setSummary(summaryRes.data.data.summary);
-      if (usersRes.data.success) setUsers(usersRes.data.data.users);
-      if (alertsRes.data.success) setAlerts(alertsRes.data.data.alerts);
-      if (pipelineRes.data.success) setPipeline(pipelineRes.data.data.pipeline);
+      if (summaryRes.success) setSummary(summaryRes.data.summary);
+      if (usersRes.success) setUsers(usersRes.data.users);
+      if (alertsRes.success) setAlerts(alertsRes.data.alerts);
+      if (pipelineRes.success) setPipeline(pipelineRes.data.pipeline);
     } catch (error) {
       console.error('Error fetching admin data:', error);
       toast.error('Failed to load admin data');
@@ -44,8 +130,8 @@ export default function AdminPanel() {
   const deactivateUser = async (userId) => {
     if (window.confirm('Are you sure you want to deactivate this user?')) {
       try {
-        const response = await api.patch(`/admin/users/${userId}/deactivate`);
-        if (response.data.success) {
+        const response = await adminApi.deactivateUser(userId);
+        if (response.success) {
           toast.success('User deactivated successfully');
           fetchAdminData();
         }
@@ -58,8 +144,8 @@ export default function AdminPanel() {
 
   const activateUser = async (userId) => {
     try {
-      const response = await api.patch(`/admin/users/${userId}/activate`);
-      if (response.data.success) {
+      const response = await adminApi.activateUser(userId);
+      if (response.success) {
         toast.success('User activated successfully');
         fetchAdminData();
       }
@@ -69,10 +155,25 @@ export default function AdminPanel() {
     }
   };
 
+  const deleteUser = async (userId) => {
+    if (window.confirm('Are you sure you want to permanently delete this employee? This will unassign all their leads/tasks.')) {
+      try {
+        const response = await adminApi.deleteUser(userId);
+        if (response.success) {
+          toast.success('User deleted successfully');
+          fetchAdminData();
+        }
+      } catch (error) {
+        console.error('Error deleting user:', error);
+        toast.error('Failed to delete user');
+      }
+    }
+  };
+
   const resolveAlert = async (alertId) => {
     try {
-      const response = await api.patch(`/security/alerts/${alertId}/resolve`);
-      if (response.data.success) {
+      const response = await adminApi.resolveSecurityAlert(alertId);
+      if (response.success) {
         toast.success('Alert resolved');
         fetchAdminData();
       }
@@ -178,6 +279,16 @@ export default function AdminPanel() {
             Security Alerts
           </button>
           <button
+            onClick={() => setActiveTab('chats')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'chats'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+          >
+            <FiMessageSquare className="inline mr-2" size={16} />
+            Support Chats
+          </button>
+          <button
             onClick={() => setActiveTab('settings')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'settings'
                 ? 'border-blue-500 text-blue-600'
@@ -268,22 +379,28 @@ export default function AdminPanel() {
                       {userItem.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-3 px-4 flex items-center space-x-3">
                     {userItem.isActive ? (
                       <button
                         onClick={() => deactivateUser(userItem._id)}
-                        className="text-red-600 hover:text-red-700 text-sm"
+                        className="text-yellow-600 hover:text-yellow-700 text-sm font-medium"
                       >
                         Deactivate
                       </button>
                     ) : (
                       <button
                         onClick={() => activateUser(userItem._id)}
-                        className="text-green-600 hover:text-green-700 text-sm"
+                        className="text-green-600 hover:text-green-700 text-sm font-medium"
                       >
                         Activate
                       </button>
                     )}
+                    <button
+                      onClick={() => deleteUser(userItem._id)}
+                      className="text-red-600 hover:text-red-700 text-sm font-medium"
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -381,6 +498,134 @@ export default function AdminPanel() {
                 <button className="btn-secondary">Export</button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Support Chats Tab */}
+      {activeTab === 'chats' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[600px]">
+          {/* Sessions Sidebar */}
+          <div className="card overflow-y-auto lg:col-span-1 p-4 space-y-3">
+            <h3 className="font-bold text-slate-800 text-lg mb-3">Conversations</h3>
+            {chatSessions.length === 0 ? (
+              <p className="text-sm text-slate-500 text-center py-8">No active chats found</p>
+            ) : (
+              chatSessions.map((session) => (
+                <button
+                  key={session.sessionId}
+                  onClick={() => handleSelectSession(session.sessionId)}
+                  className={`w-full text-left p-4 rounded-xl border transition duration-200 flex flex-col justify-between ${
+                    selectedSessionId === session.sessionId
+                      ? 'bg-blue-50 border-blue-300 text-blue-900 shadow-sm'
+                      : 'bg-white border-slate-200 hover:bg-slate-50'
+                  }`}
+                >
+                  <div className="flex justify-between items-center w-full">
+                    <span className="font-bold text-sm truncate">{session.clientName}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                      session.status === 'OPEN' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {session.status}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-2 truncate">
+                    Session: {session.sessionId}
+                  </p>
+                  <span className="text-[10px] text-slate-400 mt-1 block self-end">
+                    {new Date(session.lastMessageAt).toLocaleTimeString()}
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
+
+          {/* Chat Window Panel */}
+          <div className="lg:col-span-2 card p-0 overflow-hidden flex flex-col h-full bg-slate-50">
+            {selectedSessionId ? (
+              <>
+                {/* Chat Header */}
+                <div className="bg-white border-b border-slate-200 p-4 flex justify-between items-center shadow-sm">
+                  <div>
+                    <h3 className="font-bold text-slate-800">
+                      {chatSessions.find(s => s.sessionId === selectedSessionId)?.clientName || 'Support Chat'}
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      {chatSessions.find(s => s.sessionId === selectedSessionId)?.clientEmail || 'No email provided'}
+                    </p>
+                  </div>
+                  {chatSessions.find(s => s.sessionId === selectedSessionId)?.status === 'OPEN' && (
+                    <button
+                      onClick={() => handleResolveSession(selectedSessionId)}
+                      className="bg-green-600 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold hover:bg-green-700 transition"
+                    >
+                      Resolve Session
+                    </button>
+                  )}
+                </div>
+
+                {/* Message Log */}
+                <div className="flex-1 p-4 overflow-y-auto space-y-4 flex flex-col">
+                  {chatMessages.map((msg) => {
+                    const isSelf = msg.sender === 'ADMIN';
+                    const isSystem = msg.sender === 'SYSTEM';
+
+                    if (isSystem) {
+                      return (
+                        <div key={msg._id} className="text-center px-4 py-1">
+                          <span className="inline-block bg-slate-200/80 text-[10px] text-slate-600 px-3 py-0.5 rounded-full font-medium">
+                            {msg.message}
+                          </span>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div
+                        key={msg._id}
+                        className={`flex flex-col ${isSelf ? 'items-end' : 'items-start'}`}
+                      >
+                        <span className="text-[9px] text-slate-400 font-semibold mb-1 px-1">
+                          {msg.senderName} ({msg.sender})
+                        </span>
+                        <div
+                          className={`max-w-[70%] rounded-2xl px-4 py-2 text-sm leading-relaxed shadow-sm ${
+                            isSelf
+                              ? 'bg-blue-600 text-white rounded-br-none'
+                              : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'
+                          }`}
+                        >
+                          {msg.message}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Message Input Footer */}
+                <form onSubmit={handleSendReply} className="p-3 bg-white border-t border-slate-200 flex items-center space-x-2">
+                  <input
+                    type="text"
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    placeholder="Type your response to the client..."
+                    className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl outline-none focus:border-blue-500 text-sm"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!replyText.trim()}
+                    className="p-3 rounded-xl bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  >
+                    <FiSend size={16} />
+                  </button>
+                </form>
+              </>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8">
+                <FiMessageSquare size={48} className="mb-3 opacity-60" />
+                <p className="font-medium">Select a conversation from the sidebar to view chat history and reply.</p>
+              </div>
+            )}
           </div>
         </div>
       )}

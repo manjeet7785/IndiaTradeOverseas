@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect } from 'react';
-import { authService } from '../services/authService';
+import { authApi } from '../api/auth';
 
 export const AuthContext = createContext();
 
@@ -12,24 +12,24 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const checkAuth = async () => {
-    const token = authService.getToken();
+    const token = authApi.getToken();
     if (token) {
       try {
-        const response = await authService.getMe();
+        const response = await authApi.getMe();
         if (response.success) {
           setUser(response.data.user);
         } else {
-          authService.logout();
+          authApi.logout();
         }
       } catch (error) {
-        authService.logout();
+        authApi.logout();
       }
     }
     setLoading(false);
   };
 
   const login = async (credentials) => {
-    const response = await authService.login(credentials);
+    const response = await authApi.login(credentials);
     if (response.success) {
       setUser(response.data.user);
     }
@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (userData) => {
-    const response = await authService.register(userData);
+    const response = await authApi.register(userData);
     if (response.success) {
       setUser(response.data.user);
     }
@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    authService.logout();
+    authApi.logout();
     setUser(null);
   };
 

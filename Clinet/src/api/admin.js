@@ -1,0 +1,83 @@
+import axiosInstance from './axiosInstance';
+
+export const adminApi = {
+  async getDashboardSummary() {
+    const response = await axiosInstance.get('/admin/dashboard/summary');
+    return response.data;
+  },
+
+  async getPipeline() {
+    const response = await axiosInstance.get('/admin/dashboard/pipeline');
+    return response.data;
+  },
+
+  async getEmployeePerformance() {
+    const response = await axiosInstance.get('/admin/dashboard/employee-performance');
+    return response.data;
+  },
+
+  async getSecurityAlerts() {
+    const response = await axiosInstance.get('/security/alerts');
+    return response.data;
+  },
+
+  async getQuotationQueue() {
+    const response = await axiosInstance.get('/admin/dashboard/quotation-queue');
+    return response.data;
+  },
+
+  async getUsers() {
+    const response = await axiosInstance.get('/admin/users');
+    return response.data;
+  },
+
+  async assignLead(leadId, assignData) {
+    const response = await axiosInstance.patch(`/admin/leads/${leadId}/assign`, assignData);
+    return response.data;
+  },
+
+  async deactivateUser(userId) {
+    const response = await axiosInstance.patch(`/admin/users/${userId}/deactivate`);
+    return response.data;
+  },
+
+  async activateUser(userId) {
+    const response = await axiosInstance.patch(`/admin/users/${userId}/activate`);
+    return response.data;
+  },
+
+  async updateUserRole(userId, role) {
+    const response = await axiosInstance.patch(`/admin/users/${userId}/role`, { role });
+    return response.data;
+  },
+
+  async updateUserDepartment(userId, department) {
+    const response = await axiosInstance.patch(`/admin/users/${userId}/department`, { department });
+    return response.data;
+  },
+
+  async updateExportPermission(userId, exportPermission) {
+    const response = await axiosInstance.patch(`/admin/users/${userId}/export-permission`, { exportPermission });
+    return response.data;
+  },
+
+  async getAuditLogs(limit = 100) {
+    const response = await axiosInstance.get(`/admin/audit-logs?limit=${limit}`);
+    return response.data;
+  },
+
+  async resolveSecurityAlert(alertId) {
+    const response = await axiosInstance.patch(`/admin/security/alerts/${alertId}/resolve`);
+    return response.data;
+  },
+
+  async deleteUser(userId) {
+    const response = await axiosInstance.delete(`/admin/users/${userId}`);
+    return response.data;
+  },
+
+  async deleteLead(leadId) {
+    const response = await axiosInstance.delete(`/admin/leads/${leadId}`);
+    return response.data;
+  }
+};

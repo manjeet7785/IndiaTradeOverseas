@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FiPlus, FiDollarSign, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-import api from '../../services/api';
+import { paymentsApi } from '../../api/payments';
 
 export default function Payments() {
   const [payments, setPayments] = useState([]);
@@ -20,9 +20,9 @@ export default function Payments() {
 
   const fetchPayments = async () => {
     try {
-      const response = await api.get('/payments');
-      if (response.data.success) {
-        setPayments(response.data.data.payments);
+      const response = await paymentsApi.getPayments();
+      if (response.success) {
+        setPayments(response.data.payments);
       }
     } catch (error) {
       console.error('Error fetching payments:', error);
@@ -34,8 +34,8 @@ export default function Payments() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.post('/payments', formData);
-      if (response.data.success) {
+      const response = await paymentsApi.createPayment(formData);
+      if (response.success) {
         toast.success('Payment record created successfully');
         setShowModal(false);
         setFormData({ leadId: '', totalAmount: '', advanceAmount: '0', dueDate: '' });
@@ -48,8 +48,8 @@ export default function Payments() {
 
   const updateStatus = async (id, status) => {
     try {
-      const response = await api.patch(`/payments/${id}`, { paymentStatus: status });
-      if (response.data.success) {
+      const response = await paymentsApi.updatePaymentStatus(id, status);
+      if (response.success) {
         toast.success(`Payment status updated to ${status}`);
         fetchPayments();
       }

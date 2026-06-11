@@ -1,10 +1,11 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { useAuth } from './hooks/useAuth';
 
 // Public Pages
+import Landing from './pages/public/Landing';
 import Home from './pages/public/Home';
 import Products from './pages/public/Products';
 import About from './pages/public/About';
@@ -28,26 +29,9 @@ import AdminPanel from './pages/crm/AdminPanel';
 
 // Components
 import Navbar from './components/Layout/Navbar';
-import Sidebar from './components/Layout/Sidebar';
 import Footer from './components/Layout/Footer';
-
-function ProtectedRoute({ children }) {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-
-  if (!user) {
-    return <Navigate to="/login" />;
-  }
-
-  return children;
-}
+import ChatWidget from './components/Chat/ChatWidget';
+import PortalLayout from './components/Layout/PortalLayout';
 
 function AdminRoute({ children }) {
   const { user, loading } = useAuth();
@@ -61,65 +45,84 @@ function AdminRoute({ children }) {
   }
 
   if (!user || user.role !== 'ADMIN') {
-    return <Navigate to="/crm/dashboard" />;
+    return <Navigate to="/crm/dashboard" replace />;
   }
 
   return children;
 }
 
-function AppLayout() {
-  const { user } = useAuth();
-  const isCRM = window.location.pathname.startsWith('/crm');
-  const isAuth = window.location.pathname === '/login' || window.location.pathname === '/signup';
+// Layout for CRM Dashboard (Authenticated Pages)
+function CrmLayout() {
+  const { user, loading } = useAuth();
 
-  if (isAuth) {
+  if (loading) {
     return (
-      <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-      </Routes>
-    );
-  }
-
-  if (isCRM && user) {
-    return (
-      <div className="flex h-screen bg-gray-50">
-        <Sidebar />
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <Navbar />
-          <main className="flex-1 overflow-y-auto p-6">
-            <Routes>
-              <Route path="/crm/dashboard" element={<Dashboard />} />
-              <Route path="/crm/leads" element={<Leads />} />
-              <Route path="/crm/leads/:id" element={<LeadDetail />} />
-              <Route path="/crm/quotations" element={<Quotations />} />
-              <Route path="/crm/dispatches" element={<Dispatches />} />
-              <Route path="/crm/payments" element={<Payments />} />
-              <Route path="/crm/documents" element={<Documents />} />
-              <Route path="/crm/users" element={<AdminRoute><Users /></AdminRoute>} />
-              <Route path="/crm/security" element={<AdminRoute><Security /></AdminRoute>} />
-              <Route path="/crm/reports" element={<AdminRoute><Reports /></AdminRoute>} />
-              <Route path="/crm/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
-            </Routes>
-          </main>
-        </div>
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
     );
   }
 
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return (
+    <PortalLayout>
+      <Outlet />
+    </PortalLayout>
+  );
+}
+
+function AppContent() {
+  const location = useLocation();
+  const isCrmRoute = location.pathname.startsWith('/crm');
+  const isAuthRoute = location.pathname === '/login' || location.pathname === '/signup';
+
+  useEffect(() => {
+    document.title = 'ITO Exim CRM';
+  }, []);
+
   return (
     <div>
-      <Navbar />
-      <main>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/products" element={<Products />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/quote-request" element={<QuoteRequest />} />
-        </Routes>
-      </main>
-      <Footer />
+      {!isCrmRoute && !isAuthRoute && <Navbar />}
+
+      <Routes>
+        {/* Auth pages */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+
+        {/* Public pages */}
+        <Route path="/" element={<Landing />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/products" element={<Products />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/quote-request" element={<QuoteRequest />} />
+
+        {/* CRM pages under CrmLayout (requires authentication) */}
+        <Route element={<CrmLayout />}>
+          <Route path="/crm/dashboard" element={<Dashboard />} />
+          <Route path="/crm/leads" element={<Leads />} />
+          <Route path="/crm/leads/:id" element={<LeadDetail />} />
+          <Route path="/crm/quotations" element={<Quotations />} />
+          <Route path="/crm/dispatches" element={<Dispatches />} />
+          <Route path="/crm/payments" element={<Payments />} />
+          <Route path="/crm/documents" element={<Documents />} />
+
+          {/* Admin-only CRM pages */}
+          <Route path="/crm/users" element={<AdminRoute><Users /></AdminRoute>} />
+          <Route path="/crm/security" element={<AdminRoute><Security /></AdminRoute>} />
+          <Route path="/crm/reports" element={<AdminRoute><Reports /></AdminRoute>} />
+          <Route path="/crm/admin" element={<AdminRoute><AdminPanel /></AdminRoute>} />
+        </Route>
+
+        {/* Catch-all route redirecting to landing page */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+
+      {!isCrmRoute && !isAuthRoute && <Footer />}
+      <ChatWidget />
     </div>
   );
 }
@@ -129,7 +132,7 @@ function App() {
     <Router>
       <AuthProvider>
         <Toaster position="top-right" />
-        <AppLayout />
+        <AppContent />
       </AuthProvider>
     </Router>
   );

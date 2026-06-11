@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FiBarChart2, FiDownload, FiCalendar } from 'react-icons/fi';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-import api from '../../services/api';
+import api from '../../api/axiosInstance';
 
 export default function Reports() {
   const [loading, setLoading] = useState(true);

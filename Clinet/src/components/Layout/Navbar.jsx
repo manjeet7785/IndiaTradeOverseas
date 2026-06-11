@@ -1,12 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { FiMenu, FiX, FiUser, FiLogOut, FiHome, FiPackage, FiInfo, FiPhone, FiFileText, FiSettings } from 'react-icons/fi';
+import { notificationsApi } from '../../api/notifications';
+import { FiMenu, FiX, FiUser, FiLogOut, FiHome, FiPackage, FiInfo, FiPhone, FiFileText, FiSettings, FiBell } from 'react-icons/fi';
+import toast from 'react-hot-toast';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const loadNotifications = async () => {
+      if (!user) return;
+      try {
+        const response = await notificationsApi.getNotifications();
+        if (response.success) {
+          setUnreadCount(response.data.notifications.filter((n) => !n.isRead).length);
+        }
+      } catch (error) {
+        console.error('Unable to load notification badge:', error);
+      }
+    };
+
+    loadNotifications();
+  }, [user]);
 
   const handleLogout = () => {
     logout();
@@ -29,11 +48,9 @@ export default function Navbar() {
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-2">
               <div className="h-8 w-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-sm">I</span>
+                <span className="text-white font-bold text-sm">ITO</span>
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
-                ITO Exim
-              </span>
+
             </Link>
           </div>
 
@@ -51,6 +68,18 @@ export default function Navbar() {
 
             {user ? (
               <div className="flex items-center space-x-3 ml-4">
+                <Link
+                  to="/crm/dashboard"
+                  className="relative text-gray-600 hover:text-blue-600"
+                  title="Notifications"
+                >
+                  <FiBell size={22} />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-semibold">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </Link>
                 <div className="flex items-center space-x-2 bg-gray-100 rounded-lg px-3 py-1">
                   <FiUser className="text-gray-600" size={16} />
                   <span className="text-sm text-gray-700">{user.fullName}</span>
@@ -127,6 +156,17 @@ export default function Navbar() {
                 <div className="px-3 py-2 text-sm text-gray-600">
                   Logged in as: {user.fullName} ({user.role})
                 </div>
+                <Link
+                  to="/crm/dashboard"
+                  className="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Notifications {unreadCount > 0 && (
+                    <span className="ml-2 inline-flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-semibold">
+                      {unreadCount > 9 ? '9+' : unreadCount}
+                    </span>
+                  )}
+                </Link>
                 <Link
                   to="/crm/dashboard"
                   className="text-gray-700 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium"

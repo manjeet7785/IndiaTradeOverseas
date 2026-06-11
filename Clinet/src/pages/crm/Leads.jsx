@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { leadService } from '../../services/leadService';
-import { FiPlus, FiSearch, FiEye, FiEdit2, FiFilter } from 'react-icons/fi';
+import { leadsApi } from '../../api/leads';
+import { FiPlus, FiSearch, FiEye, FiEdit2, FiFilter, FiTrash2 } from 'react-icons/fi';
+import { useAuth } from '../../hooks/useAuth';
 import toast from 'react-hot-toast';
 
 export default function Leads() {
+  const { user } = useAuth();
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -28,7 +30,7 @@ export default function Leads() {
   const fetchLeads = async () => {
     try {
       const params = filterStage ? { stage: filterStage } : {};
-      const response = await leadService.getLeads(params);
+      const response = await leadsApi.getLeads(params);
       if (response.success) {
         setLeads(response.data.leads);
       }
@@ -39,10 +41,25 @@ export default function Leads() {
     }
   };
 
+  const handleDeleteLead = async (leadId) => {
+    if (window.confirm('Are you sure you want to permanently delete this task/lead? This will delete all activity logs for it.')) {
+      try {
+        const response = await leadsApi.deleteLead(leadId);
+        if (response.success) {
+          toast.success('Lead deleted successfully');
+          fetchLeads();
+        }
+      } catch (error) {
+        console.error('Error deleting lead:', error);
+        toast.error('Failed to delete lead');
+      }
+    }
+  };
+
   const handleCreateLead = async (e) => {
     e.preventDefault();
     try {
-      const response = await leadService.createLead(newLead);
+      const response = await leadsApi.createLead(newLead);
       if (response.success) {
         toast.success('Lead created successfully');
         setShowCreateModal(false);
@@ -51,6 +68,8 @@ export default function Leads() {
       }
     } catch (error) {
       console.error('Error creating lead:', error);
+      const errorMsg = error.response?.data?.message || 'Failed to create lead.';
+      toast.error(errorMsg);
     }
   };
 
@@ -157,13 +176,23 @@ export default function Leads() {
                   <td className="py-3 px-4 text-sm text-gray-700">
                     {new Date(lead.createdAt).toLocaleDateString()}
                   </td>
-                  <td className="py-3 px-4">
+                  <td className="py-3 px-4 flex items-center space-x-3">
                     <Link
                       to={`/crm/leads/${lead._id}`}
                       className="text-primary-600 hover:text-primary-700"
+                      title="View Details"
                     >
                       <FiEye size={18} />
                     </Link>
+                    {user?.role === 'ADMIN' && (
+                      <button
+                        onClick={() => handleDeleteLead(lead._id)}
+                        className="text-red-600 hover:text-red-700"
+                        title="Delete Task"
+                      >
+                        <FiTrash2 size={18} />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))
@@ -174,77 +203,133 @@ export default function Leads() {
 
       {/* Create Lead Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold mb-4">Create New Lead</h2>
-            <form onSubmit={handleCreateLead}>
-              <div className="space-y-4">
-                <div>
-                  <label className="label">Customer Name *</label>
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-xl overflow-hidden transform transition-all">
+            {/* Header */}
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <h2 className="text-xl font-semibold text-slate-800">Create New Lead</h2>
+              <button
+                type="button"
+                onClick={() => setShowCreateModal(false)}
+                className="text-slate-400 hover:text-slate-600 rounded-lg p-1 hover:bg-slate-100 transition-colors"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleCreateLead} className="p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+                {/* Customer Name */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    Customer Name <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="text"
                     required
                     value={newLead.customerName}
                     onChange={(e) => setNewLead({ ...newLead, customerName: e.target.value })}
-                    className="input"
+                    placeholder="John Doe"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-colors placeholder:text-slate-400"
                   />
                 </div>
+
+                {/* Phone */}
                 <div>
-                  <label className="label">Phone *</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    Phone <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="tel"
                     required
                     value={newLead.phone}
                     onChange={(e) => setNewLead({ ...newLead, phone: e.target.value })}
-                    className="input"
+                    placeholder="+1 (555) 000-0000"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-colors placeholder:text-slate-400"
                   />
                 </div>
+
+                {/* Email */}
                 <div>
-                  <label className="label">Email</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    Email
+                  </label>
                   <input
                     type="email"
                     value={newLead.email}
                     onChange={(e) => setNewLead({ ...newLead, email: e.target.value })}
-                    className="input"
+                    placeholder="john@example.com"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-colors placeholder:text-slate-400"
                   />
                 </div>
+
+                {/* Product Category */}
                 <div>
-                  <label className="label">Product Category *</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    Product Category <span className="text-rose-500">*</span>
+                  </label>
                   <select
                     required
                     value={newLead.productCategory}
                     onChange={(e) => setNewLead({ ...newLead, productCategory: e.target.value })}
-                    className="input"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-white transition-colors"
                   >
-                    <option value="">Select</option>
+                    <option value="" className="text-slate-400">Select Category</option>
                     <option value="STONE">Stone</option>
                     <option value="COAL">Coal</option>
                     <option value="TEA">Tea</option>
                     <option value="RICE">Rice</option>
                   </select>
                 </div>
+
+                {/* Quantity */}
                 <div>
-                  <label className="label">Quantity</label>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    Quantity
+                  </label>
                   <input
                     type="text"
                     value={newLead.quantity}
                     onChange={(e) => setNewLead({ ...newLead, quantity: e.target.value })}
-                    className="input"
+                    placeholder="e.g. 500 tons"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-colors placeholder:text-slate-400"
                   />
                 </div>
-                <div>
-                  <label className="label">Destination</label>
+
+                {/* Destination */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    Destination
+                  </label>
                   <input
                     type="text"
                     value={newLead.destination}
                     onChange={(e) => setNewLead({ ...newLead, destination: e.target.value })}
-                    className="input"
+                    placeholder="City, Country or Port Name"
+                    className="w-full px-3 py-2 border border-slate-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm transition-colors placeholder:text-slate-400"
                   />
                 </div>
               </div>
-              <div className="flex space-x-3 mt-6">
-                <button type="submit" className="btn-primary flex-1">Create</button>
-                <button type="button" onClick={() => setShowCreateModal(false)} className="btn-secondary flex-1">Cancel</button>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-end space-x-3 mt-8 pt-4 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 shadow-sm transition-colors"
+                >
+                  Create Lead
+                </button>
               </div>
             </form>
           </div>
@@ -252,4 +337,5 @@ export default function Leads() {
       )}
     </div>
   );
+
 }

@@ -35,7 +35,13 @@ async function requestQuotation(req, res) {
 
 async function pendingQuotations(req, res) {
   try {
-    const quotations = await Quotation.find({ status: 'PENDING' }).populate('leadId').sort({ createdAt: -1 });
+    let filter = { status: 'PENDING' };
+    if (req.user.role !== 'ADMIN') {
+      const myLeads = await Lead.find({ assignedTo: req.user._id }).select('_id');
+      const leadIds = myLeads.map(l => l._id);
+      filter.leadId = { $in: leadIds };
+    }
+    const quotations = await Quotation.find(filter).populate('leadId').sort({ createdAt: -1 });
     return ok(res, { quotations });
   } catch (error) {
     return fail(res, 500, 'SERVER_ERROR', error.message);
@@ -44,6 +50,9 @@ async function pendingQuotations(req, res) {
 
 async function approveQuotation(req, res) {
   try {
+    if (req.user.role !== 'ADMIN') {
+      return fail(res, 403, 'OWNERSHIP_FORBIDDEN', 'Access denied: Only Admin can approve quotations');
+    }
     const quotation = await Quotation.findById(req.params.id);
     if (!quotation) return fail(res, 404, 'VALIDATION_FAILED', 'Quotation not found');
 
@@ -63,6 +72,9 @@ async function approveQuotation(req, res) {
 
 async function rejectQuotation(req, res) {
   try {
+    if (req.user.role !== 'ADMIN') {
+      return fail(res, 403, 'OWNERSHIP_FORBIDDEN', 'Access denied: Only Admin can reject quotations');
+    }
     const quotation = await Quotation.findById(req.params.id);
     if (!quotation) return fail(res, 404, 'VALIDATION_FAILED', 'Quotation not found');
 

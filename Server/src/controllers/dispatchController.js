@@ -9,6 +9,10 @@ async function createDispatch(req, res) {
     const lead = await Lead.findById(leadId);
     if (!lead) return fail(res, 404, 'VALIDATION_FAILED', 'Lead not found');
 
+    if (req.user.role !== 'ADMIN' && (!lead.assignedTo || lead.assignedTo.toString() !== req.user._id.toString())) {
+      return fail(res, 403, 'OWNERSHIP_FORBIDDEN', 'Access denied: You can only dispatch for leads assigned to you');
+    }
+
     const dispatch = await Dispatch.create({
       leadId,
       quotationId,
@@ -41,7 +45,13 @@ async function createDispatch(req, res) {
 
 async function listDispatches(req, res) {
   try {
-    const dispatches = await Dispatch.find().populate('leadId').sort({ createdAt: -1 });
+    let filter = {};
+    if (req.user.role !== 'ADMIN') {
+      const myLeads = await Lead.find({ assignedTo: req.user._id }).select('_id');
+      const leadIds = myLeads.map(l => l._id);
+      filter.leadId = { $in: leadIds };
+    }
+    const dispatches = await Dispatch.find(filter).populate('leadId').sort({ createdAt: -1 });
     return ok(res, { dispatches });
   } catch (error) {
     return fail(res, 500, 'SERVER_ERROR', error.message);
@@ -50,8 +60,20 @@ async function listDispatches(req, res) {
 
 async function updateDispatchStatus(req, res) {
   try {
-    const dispatch = await Dispatch.findByIdAndUpdate(req.params.id, { dispatchStatus: req.body.dispatchStatus }, { new: true });
+    const dispatch = await Dispatch.findById(req.params.id);
     if (!dispatch) return fail(res, 404, 'VALIDATION_FAILED', 'Dispatch not found');
+
+    const lead = await Lead.findById(dispatch.leadId);
+    if (lead && req.user.role !== 'ADMIN' && (!lead.assignedTo || lead.assignedTo.toString() !== req.user._id.toString())) {
+      return fail(res, 403, 'OWNERSHIP_FORBIDDEN', 'Access denied: You can only update dispatches for leads assigned to you');
+    }
+
+    dispatch.dispatchStatus = req.body.dispatchStatus;
+    if (req.body.dispatchStatus === 'DELIVERED') {
+      dispatch.deliveryDate = new Date();
+    }
+    await dispatch.save();
+
     return ok(res, { dispatch });
   } catch (error) {
     return fail(res, 500, 'SERVER_ERROR', error.message);

@@ -102,7 +102,11 @@ async function listLeads(req, res) {
   try {
     const filter = {};
     if (req.query.stage) filter.stage = req.query.stage;
-    if (req.query.assignedTo) filter.assignedTo = req.query.assignedTo;
+    if (req.user.role !== 'ADMIN') {
+      filter.assignedTo = req.user._id;
+    } else if (req.query.assignedTo) {
+      filter.assignedTo = req.query.assignedTo;
+    }
     const leads = await Lead.find(filter).sort({ createdAt: -1 }).limit(200);
     return ok(res, { leads: leads.map((lead) => getLeadDisplay(lead)) });
   } catch (error) {
@@ -209,8 +213,12 @@ async function assignLead(req, res) {
     const lead = await Lead.findById(req.params.leadId);
     if (!lead) return fail(res, 404, 'VALIDATION_FAILED', 'Lead not found');
 
-    lead.assignedTo = req.body.assignedTo || lead.assignedTo;
-    lead.assignedDepartment = req.body.assignedDepartment || lead.assignedDepartment;
+    if (req.body.hasOwnProperty('assignedTo')) {
+      lead.assignedTo = req.body.assignedTo || null;
+    }
+    if (req.body.hasOwnProperty('assignedDepartment')) {
+      lead.assignedDepartment = req.body.assignedDepartment || null;
+    }
     await lead.save();
 
     await LeadActivity.create({
@@ -243,3 +251,5 @@ module.exports = {
   updateStage,
   assignLead
 };
+
+

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FiPlus, FiTruck, FiCheckCircle, FiXCircle, FiClock } from 'react-icons/fi';
 import toast from 'react-hot-toast';
-import api from '../../services/api';
+import { dispatchesApi } from '../../api/dispatches';
 
 export default function Dispatches() {
   const [dispatches, setDispatches] = useState([]);
@@ -25,9 +25,9 @@ export default function Dispatches() {
 
   const fetchDispatches = async () => {
     try {
-      const response = await api.get('/dispatch');
-      if (response.data.success) {
-        setDispatches(response.data.data.dispatches);
+      const response = await dispatchesApi.getDispatches();
+      if (response.success) {
+        setDispatches(response.data.dispatches);
       }
     } catch (error) {
       console.error('Error fetching dispatches:', error);
@@ -39,8 +39,8 @@ export default function Dispatches() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await api.post('/dispatch', formData);
-      if (response.data.success) {
+      const response = await dispatchesApi.createDispatch(formData);
+      if (response.success) {
         toast.success('Dispatch created successfully');
         setShowModal(false);
         setFormData({
@@ -63,8 +63,8 @@ export default function Dispatches() {
 
   const updateStatus = async (id, status) => {
     try {
-      const response = await api.patch(`/dispatch/${id}`, { dispatchStatus: status });
-      if (response.data.success) {
+      const response = await dispatchesApi.updateDispatchStatus(id, status);
+      if (response.success) {
         toast.success(`Dispatch status updated to ${status}`);
         fetchDispatches();
       }
