@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { leadsApi } from '../../api/leads';
-import { FiPlus, FiSearch, FiEye, FiEdit2, FiFilter, FiTrash2 } from 'react-icons/fi';
+import { adminApi } from '../../api/admin';
+import { FiPlus, FiSearch, FiEye, FiEdit2, FiFilter, FiTrash2, FiDownload, FiShield } from 'react-icons/fi';
 import { useAuth } from '../../hooks/useAuth';
 import toast from 'react-hot-toast';
 
@@ -73,6 +74,44 @@ export default function Leads() {
     }
   };
 
+  const handleExportLeads = async () => {
+    try {
+      const deviceHash = localStorage.getItem('deviceHash');
+      const response = await adminApi.logExportAttempt({
+        deviceHash,
+        metadata: {
+          userAgent: navigator.userAgent,
+          screenResolution: `${window.screen.width}x${window.screen.height}`,
+          leadsCount: leads.length
+        }
+      });
+      if (response.success) {
+        const csvContent = "data:text/csv;charset=utf-8," 
+          + "Lead Code,Customer Name,Phone,Email,Product,Stage,Created At\n"
+          + leads.map(l => `"${l.leadCode}","${l.customerName}","${l.phoneMasked}","${l.emailMasked}","${l.productCategory}","${l.stage}","${l.createdAt}"`).join("\n");
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `ITO_Leads_Export_${Date.now()}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        toast.success("Database exported successfully!");
+      }
+    } catch (error) {
+      console.error("Export error:", error);
+      const errorMsg = error.response?.data?.message || "Export blocked due to security restrictions.";
+      toast.error(errorMsg, {
+        duration: 5000,
+        style: {
+          borderRadius: "10px",
+          background: "#ef4444",
+          color: "#fff"
+        }
+      });
+    }
+  };
+
   const filteredLeads = leads.filter(lead =>
     lead.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     lead.leadCode.toLowerCase().includes(searchTerm.toLowerCase())
@@ -101,13 +140,22 @@ export default function Leads() {
           <h1 className="text-2xl font-bold text-gray-900">Leads</h1>
           <p className="text-gray-600 mt-1">Manage and track all your leads</p>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="btn-primary flex items-center space-x-2"
-        >
-          <FiPlus size={18} />
-          <span>New Lead</span>
-        </button>
+        <div className="flex space-x-3">
+          <button
+            onClick={handleExportLeads}
+            className="btn-secondary flex items-center space-x-2 border border-slate-200"
+          >
+            <FiDownload size={18} />
+            <span>Export Database</span>
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="btn-primary flex items-center space-x-2"
+          >
+            <FiPlus size={18} />
+            <span>New Lead</span>
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -179,7 +227,7 @@ export default function Leads() {
                   <td className="py-3 px-4 flex items-center space-x-3">
                     <Link
                       to={`/crm/leads/${lead._id}`}
-                      className="text-primary-600 hover:text-primary-700"
+                      className="text-indigo-600 hover:text-indigo-700"
                       title="View Details"
                     >
                       <FiEye size={18} />

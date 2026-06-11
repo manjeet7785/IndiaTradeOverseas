@@ -21,8 +21,54 @@ function isRateLimited(key) {
 async function reveal(req, res) {
   try {
     const { entityType, entityId, fieldName, reason, deviceHash = '' } = req.body;
-    if (entityType !== 'LEAD') {
-      return fail(res, 400, 'VALIDATION_FAILED', 'Only LEAD reveal is supported in this scaffold');
+    if (entityType !== 'LEAD' && entityType !== 'DISPATCH') {
+      return fail(res, 400, 'VALIDATION_FAILED', 'Only LEAD and DISPATCH reveal is supported');
+    }
+
+    if (entityType === 'DISPATCH') {
+      const Dispatch = require('../models/Dispatch');
+      const dispatch = await Dispatch.findById(entityId);
+      if (!dispatch) return fail(res, 404, 'VALIDATION_FAILED', 'Dispatch not found');
+
+      const lead = await Lead.findById(dispatch.leadId);
+      if (!lead || !canAccessLead(req.user, lead)) {
+        await raiseAlert({
+          actorId: req.user._id,
+          alertType: 'OWNERSHIP_FORBIDDEN',
+          severity: 'HIGH',
+          message: 'Unauthorized dispatch reveal attempt',
+          metadata: { entityType, entityId, fieldName, deviceHash, reason }
+        });
+        await recordAudit({
+          actorId: req.user._id,
+          actionType: 'REVEAL_DENIED',
+          entityType,
+          entityId,
+          severity: 'HIGH',
+          deviceHash,
+          metadata: { fieldName, reason }
+        });
+        return fail(res, 403, 'OWNERSHIP_FORBIDDEN', 'Access denied');
+      }
+
+      let value = null;
+      if (['driverphone', 'driver_phone', 'driverphoneencrypted', 'phone'].includes(String(fieldName).toLowerCase())) {
+        value = decryptText(dispatch.driverPhoneEncrypted);
+      } else {
+        return fail(res, 400, 'VALIDATION_FAILED', 'Unsupported field');
+      }
+
+      await recordAudit({
+        actorId: req.user._id,
+        actionType: `${String(fieldName).toUpperCase()}_REVEAL`,
+        entityType,
+        entityId,
+        severity: 'MEDIUM',
+        deviceHash,
+        metadata: { fieldName, reason }
+      });
+
+      return ok(res, { value });
     }
 
     const lead = await Lead.findById(entityId);
@@ -103,4 +149,36 @@ async function alerts(req, res) {
   }
 }
 
-module.exports = { reveal, logs, alerts };
+async function exportAttempt(req, res) {
+  try {
+    const { deviceHash = '', metadata = {} } = req.body;
+    const hasPermission = req.user.exportPermission === true || req.user.role === 'ADMIN';
+
+    await recordAudit({
+      actorId: req.user._id,
+      actionType: 'EXPORT_ATTEMPT',
+      entityType: 'LEAD',
+      entityId: 'ALL_LEADS',
+      severity: hasPermission ? 'LOW' : 'CRITICAL',
+      deviceHash,
+      metadata: { ...metadata, hasPermission }
+    });
+
+    if (!hasPermission) {
+      await raiseAlert({
+        actorId: req.user._id,
+        alertType: 'UNAUTHORIZED_EXPORT_ATTEMPT',
+        severity: 'CRITICAL',
+        message: `${req.user.fullName} (${req.user.employeeId}) tried to export leads database without export permission.`,
+        metadata: { deviceHash, ...metadata }
+      });
+      return fail(res, 403, 'UNAUTHORIZED_EXPORT', 'Access denied: You do not have permission to export data.');
+    }
+
+    return ok(res, { success: true, message: 'Export allowed' });
+  } catch (error) {
+    return fail(res, 500, 'SERVER_ERROR', error.message);
+  }
+}
+
+module.exports = { reveal, logs, alerts, exportAttempt };

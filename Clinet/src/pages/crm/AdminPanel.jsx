@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { FiUsers, FiShield, FiBarChart2, FiSettings, FiUserCheck, FiAlertCircle, FiFileText, FiDollarSign, FiMessageSquare, FiSend } from 'react-icons/fi';
+import { FiUsers, FiShield, FiBarChart2, FiSettings, FiUserCheck, FiAlertCircle, FiFileText, FiDollarSign, FiMessageSquare, FiSend, FiSmartphone } from 'react-icons/fi';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { adminApi } from '../../api/admin';
 import { chatApi } from '../../api/chat';
+import { leadsApi } from '../../api/leads';
 import { useAuth } from '../../hooks/useAuth';
 import toast from 'react-hot-toast';
 
@@ -19,6 +20,17 @@ export default function AdminPanel() {
   const [selectedSessionId, setSelectedSessionId] = useState(null);
   const [chatMessages, setChatMessages] = useState([]);
   const [replyText, setReplyText] = useState('');
+  const [devices, setDevices] = useState([]);
+
+  // Task assignment modal states
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [leadsList, setLeadsList] = useState([]);
+  const [assignFormData, setAssignFormData] = useState({
+    leadId: '',
+    assignedTo: '',
+    assignedDepartment: ''
+  });
+  const [isAssigning, setIsAssigning] = useState(false);
 
   useEffect(() => {
     if (user?.role === 'ADMIN') {
@@ -106,19 +118,47 @@ export default function AdminPanel() {
     }
   };
 
+  const handleApproveDevice = async (deviceId) => {
+    try {
+      const response = await adminApi.approveDevice(deviceId);
+      if (response.success) {
+        toast.success('Device approved successfully');
+        fetchAdminData();
+      }
+    } catch (error) {
+      console.error('Error approving device:', error);
+      toast.error('Failed to approve device');
+    }
+  };
+
+  const handleRevokeDevice = async (deviceId) => {
+    try {
+      const response = await adminApi.revokeDevice(deviceId);
+      if (response.success) {
+        toast.success('Device access revoked');
+        fetchAdminData();
+      }
+    } catch (error) {
+      console.error('Error revoking device:', error);
+      toast.error('Failed to revoke device');
+    }
+  };
+
   const fetchAdminData = async () => {
     try {
-      const [summaryRes, usersRes, alertsRes, pipelineRes] = await Promise.all([
+      const [summaryRes, usersRes, alertsRes, pipelineRes, devicesRes] = await Promise.all([
         adminApi.getDashboardSummary(),
         adminApi.getUsers(),
         adminApi.getSecurityAlerts(),
-        adminApi.getPipeline()
+        adminApi.getPipeline(),
+        adminApi.getDevices()
       ]);
 
       if (summaryRes.success) setSummary(summaryRes.data.summary);
       if (usersRes.success) setUsers(usersRes.data.users);
       if (alertsRes.success) setAlerts(alertsRes.data.alerts);
       if (pipelineRes.success) setPipeline(pipelineRes.data.pipeline);
+      if (devicesRes.success) setDevices(devicesRes.data.devices);
     } catch (error) {
       console.error('Error fetching admin data:', error);
       toast.error('Failed to load admin data');
@@ -170,6 +210,24 @@ export default function AdminPanel() {
     }
   };
 
+  const togglePermission = async (id, type, currentValue) => {
+    try {
+      let response;
+      if (type === 'export') {
+        response = await adminApi.updateExportPermission(id, !currentValue);
+      } else if (type === 'upload') {
+        response = await adminApi.updateProductUploadPermission(id, !currentValue);
+      }
+      if (response && response.success) {
+        toast.success('Permissions updated successfully!');
+        fetchAdminData();
+      }
+    } catch (error) {
+      console.error('Error updating permissions:', error);
+      toast.error('Failed to update employee permissions');
+    }
+  };
+
   const resolveAlert = async (alertId) => {
     try {
       const response = await adminApi.resolveSecurityAlert(alertId);
@@ -183,6 +241,47 @@ export default function AdminPanel() {
   };
 
   const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+
+  const departments = ['STONE', 'COAL', 'TEA', 'RICE', 'TRANSPORT', 'ADMIN', 'IT', 'PROCUREMENT', 'ACCOUNTS', 'HR', 'SALES'];
+
+  const handleOpenAssignModal = async () => {
+    setShowAssignModal(true);
+    try {
+      const response = await leadsApi.getLeads();
+      if (response.success) {
+        setLeadsList(response.data.leads || []);
+      }
+    } catch (error) {
+      console.error('Error fetching leads:', error);
+      toast.error('Failed to load tasks list');
+    }
+  };
+
+  const handleAssignTask = async (e) => {
+    e.preventDefault();
+    if (!assignFormData.leadId) {
+      toast.error('Please select a task/lead');
+      return;
+    }
+    setIsAssigning(true);
+    try {
+      const response = await adminApi.assignLead(assignFormData.leadId, {
+        assignedTo: assignFormData.assignedTo || null,
+        assignedDepartment: assignFormData.assignedDepartment || null
+      });
+      if (response.success) {
+        toast.success('Task assigned successfully! 🎉');
+        setShowAssignModal(false);
+        setAssignFormData({ leadId: '', assignedTo: '', assignedDepartment: '' });
+        fetchAdminData();
+      }
+    } catch (error) {
+      console.error('Error assigning task:', error);
+      toast.error(error.response?.data?.message || 'Failed to assign task');
+    } finally {
+      setIsAssigning(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -200,8 +299,16 @@ export default function AdminPanel() {
           <h1 className="text-2xl font-bold text-gray-900">Admin Panel</h1>
           <p className="text-gray-600 mt-1">System administration and monitoring</p>
         </div>
-        <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
-          Admin Access
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={handleOpenAssignModal}
+            className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-semibold shadow-lg text-sm transition-all active:scale-95 hover:shadow-indigo-500/20"
+          >
+            Assign Task
+          </button>
+          <div className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm">
+            Admin Access
+          </div>
         </div>
       </div>
 
@@ -251,8 +358,8 @@ export default function AdminPanel() {
           <button
             onClick={() => setActiveTab('overview')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'overview'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
           >
             <FiBarChart2 className="inline mr-2" size={16} />
@@ -261,8 +368,8 @@ export default function AdminPanel() {
           <button
             onClick={() => setActiveTab('users')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'users'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
           >
             <FiUsers className="inline mr-2" size={16} />
@@ -271,8 +378,8 @@ export default function AdminPanel() {
           <button
             onClick={() => setActiveTab('alerts')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'alerts'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
           >
             <FiShield className="inline mr-2" size={16} />
@@ -281,18 +388,28 @@ export default function AdminPanel() {
           <button
             onClick={() => setActiveTab('chats')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'chats'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
           >
             <FiMessageSquare className="inline mr-2" size={16} />
             Support Chats
           </button>
           <button
+            onClick={() => setActiveTab('devices')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'devices'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+          >
+            <FiSmartphone className="inline mr-2" size={16} />
+            Trusted Devices
+          </button>
+          <button
             onClick={() => setActiveTab('settings')}
             className={`py-2 px-1 border-b-2 font-medium text-sm ${activeTab === 'settings'
-                ? 'border-blue-500 text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700'
+              ? 'border-blue-500 text-blue-600'
+              : 'border-transparent text-gray-500 hover:text-gray-700'
               }`}
           >
             <FiSettings className="inline mr-2" size={16} />
@@ -357,6 +474,7 @@ export default function AdminPanel() {
                 <th className="text-left py-3 px-4">Email</th>
                 <th className="text-left py-3 px-4">Role</th>
                 <th className="text-left py-3 px-4">Department</th>
+                <th className="text-left py-3 px-4">Permissions</th>
                 <th className="text-left py-3 px-4">Status</th>
                 <th className="text-left py-3 px-4">Actions</th>
               </tr>
@@ -373,6 +491,28 @@ export default function AdminPanel() {
                     </span>
                   </td>
                   <td className="py-3 px-4">{userItem.department}</td>
+                  <td className="py-3 px-4">
+                    <div className="flex flex-col gap-1 text-xs text-gray-600">
+                      <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={userItem.productUploadPermission || false}
+                          onChange={() => togglePermission(userItem._id, 'upload', userItem.productUploadPermission)}
+                          className="rounded text-blue-600 focus:ring-blue-500 border-gray-300 w-3.5 h-3.5 cursor-pointer"
+                        />
+                        <span>Product List</span>
+                      </label>
+                      <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={userItem.exportPermission || false}
+                          onChange={() => togglePermission(userItem._id, 'export', userItem.exportPermission)}
+                          className="rounded text-blue-600 focus:ring-blue-500 border-gray-300 w-3.5 h-3.5 cursor-pointer"
+                        />
+                        <span>Export DB</span>
+                      </label>
+                    </div>
+                  </td>
                   <td className="py-3 px-4">
                     <span className={`px-2 py-1 text-xs rounded-full ${userItem.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}>
@@ -429,9 +569,9 @@ export default function AdminPanel() {
                   <td className="py-3 px-4">{alert.alertType}</td>
                   <td className="py-3 px-4">
                     <span className={`px-2 py-1 text-xs rounded-full ${alert.severity === 'CRITICAL' ? 'bg-red-100 text-red-800' :
-                        alert.severity === 'HIGH' ? 'bg-orange-100 text-orange-800' :
-                          alert.severity === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-blue-100 text-blue-800'
+                      alert.severity === 'HIGH' ? 'bg-orange-100 text-orange-800' :
+                        alert.severity === 'MEDIUM' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-blue-100 text-blue-800'
                       }`}>
                       {alert.severity}
                     </span>
@@ -439,8 +579,8 @@ export default function AdminPanel() {
                   <td className="py-3 px-4">{alert.message}</td>
                   <td className="py-3 px-4">
                     <span className={`px-2 py-1 text-xs rounded-full ${alert.status === 'OPEN' ? 'bg-red-100 text-red-800' :
-                        alert.status === 'ACKNOWLEDGED' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-green-100 text-green-800'
+                      alert.status === 'ACKNOWLEDGED' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-green-100 text-green-800'
                       }`}>
                       {alert.status}
                     </span>
@@ -502,6 +642,68 @@ export default function AdminPanel() {
         </div>
       )}
 
+      {/* Devices Tab */}
+      {activeTab === 'devices' && (
+        <div className="card overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-gray-200">
+                <th className="text-left py-3 px-4">User</th>
+                <th className="text-left py-3 px-4">Device Name</th>
+                <th className="text-left py-3 px-4">IP Address</th>
+                <th className="text-left py-3 px-4">Device Hash</th>
+                <th className="text-left py-3 px-4">Status</th>
+                <th className="text-left py-3 px-4">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {devices.length === 0 ? (
+                <tr>
+                  <td colSpan="6" className="text-center py-8 text-gray-500">No registered devices found</td>
+                </tr>
+              ) : (
+                devices.map((device) => (
+                  <tr key={device._id} className="border-b border-gray-100">
+                    <td className="py-3 px-4">
+                      <div>
+                        <p className="font-medium text-gray-900">{device.userId?.fullName || 'N/A'}</p>
+                        <p className="text-xs text-gray-500">{device.userId?.email || 'N/A'}</p>
+                      </div>
+                    </td>
+                    <td className="py-3 px-4 font-semibold text-gray-700">{device.deviceName}</td>
+                    <td className="py-3 px-4 text-sm">{device.ipAddress}</td>
+                    <td className="py-3 px-4 text-xs font-mono">{device.deviceHash}</td>
+                    <td className="py-3 px-4">
+                      <span className={`px-2 py-1 text-xs rounded-full ${device.isApproved ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                        {device.isApproved ? 'Approved' : 'Pending Approval'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4">
+                      {device.isApproved ? (
+                        <button
+                          onClick={() => handleRevokeDevice(device._id)}
+                          className="text-red-600 hover:text-red-700 text-sm font-semibold animate-pulse"
+                        >
+                          Revoke Access
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleApproveDevice(device._id)}
+                          className="text-green-600 hover:text-green-700 text-sm font-semibold"
+                        >
+                          Approve Device
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
       {/* Support Chats Tab */}
       {activeTab === 'chats' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[600px]">
@@ -515,17 +717,15 @@ export default function AdminPanel() {
                 <button
                   key={session.sessionId}
                   onClick={() => handleSelectSession(session.sessionId)}
-                  className={`w-full text-left p-4 rounded-xl border transition duration-200 flex flex-col justify-between ${
-                    selectedSessionId === session.sessionId
-                      ? 'bg-blue-50 border-blue-300 text-blue-900 shadow-sm'
-                      : 'bg-white border-slate-200 hover:bg-slate-50'
-                  }`}
+                  className={`w-full text-left p-4 rounded-xl border transition duration-200 flex flex-col justify-between ${selectedSessionId === session.sessionId
+                    ? 'bg-blue-50 border-blue-300 text-blue-900 shadow-sm'
+                    : 'bg-white border-slate-200 hover:bg-slate-50'
+                    }`}
                 >
                   <div className="flex justify-between items-center w-full">
                     <span className="font-bold text-sm truncate">{session.clientName}</span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
-                      session.status === 'OPEN' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'
-                    }`}>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${session.status === 'OPEN' ? 'bg-green-100 text-green-800' : 'bg-slate-100 text-slate-600'
+                      }`}>
                       {session.status}
                     </span>
                   </div>
@@ -589,11 +789,10 @@ export default function AdminPanel() {
                           {msg.senderName} ({msg.sender})
                         </span>
                         <div
-                          className={`max-w-[70%] rounded-2xl px-4 py-2 text-sm leading-relaxed shadow-sm ${
-                            isSelf
-                              ? 'bg-blue-600 text-white rounded-br-none'
-                              : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'
-                          }`}
+                          className={`max-w-[70%] rounded-2xl px-4 py-2 text-sm leading-relaxed shadow-sm ${isSelf
+                            ? 'bg-blue-600 text-white rounded-br-none'
+                            : 'bg-white text-slate-800 border border-slate-200 rounded-bl-none'
+                            }`}
                         >
                           {msg.message}
                         </div>
@@ -626,6 +825,78 @@ export default function AdminPanel() {
                 <p className="font-medium">Select a conversation from the sidebar to view chat history and reply.</p>
               </div>
             )}
+          </div>
+        </div>
+      )}
+      {/* Assign Task Modal */}
+      {showAssignModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md border border-slate-100 shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold text-slate-800 font-sans">Assign Task / Lead</h2>
+              <button onClick={() => setShowAssignModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+
+            <form onSubmit={handleAssignTask} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Select Task / Lead *</label>
+                <select
+                  required
+                  value={assignFormData.leadId}
+                  onChange={(e) => setAssignFormData({ ...assignFormData, leadId: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white text-sm cursor-pointer"
+                >
+                  <option value="">Choose a task/lead...</option>
+                  {leadsList.map(l => (
+                    <option key={l._id} value={l._id}>
+                      {l.leadCode} - {l.customerName} ({l.productCategory})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Assign to Employee</label>
+                <select
+                  value={assignFormData.assignedTo}
+                  onChange={(e) => setAssignFormData({ ...assignFormData, assignedTo: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white text-sm cursor-pointer"
+                >
+                  <option value="">Select Employee (Unassigned)</option>
+                  {users.map(u => (
+                    <option key={u._id} value={u._id}>
+                      {u.fullName} ({u.role} - {u.department})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Assign to Department</label>
+                <select
+                  value={assignFormData.assignedDepartment}
+                  onChange={(e) => setAssignFormData({ ...assignFormData, assignedDepartment: e.target.value })}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl bg-white text-sm cursor-pointer"
+                >
+                  <option value="">Select Department (None)</option>
+                  {departments.map(dept => (
+                    <option key={dept} value={dept}>{dept}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div >
+                <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Add Notes</label>
+                <textarea placeholder='Add Notes' className='w-full px-3 py-2 border border-slate-200 rounded-xl bg-white text-sm cursor-pointer'></textarea>
+              </div>
+
+              <div className="flex space-x-3 pt-4 border-t">
+                <button type="submit" disabled={isAssigning} className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition">
+                  {isAssigning ? 'Saving...' : 'Assign Task'}
+                </button>
+                <button type="button" onClick={() => setShowAssignModal(false)} className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition">Cancel</button>
+              </div>
+            </form>
           </div>
         </div>
       )}

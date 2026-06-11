@@ -22,6 +22,14 @@ axiosInstance.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    
+    let deviceHash = localStorage.getItem('deviceHash');
+    if (!deviceHash) {
+      deviceHash = 'dev_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem('deviceHash', deviceHash);
+    }
+    config.headers['x-device-hash'] = deviceHash;
+
     return config;
   },
   (error) => Promise.reject(error)

@@ -56,6 +56,18 @@ const userSchema = new mongoose.Schema(
     exportPermission: {
       type: Boolean,
       default: false
+    },
+    productUploadPermission: {
+      type: Boolean,
+      default: false
+    },
+    otp: {
+      type: String,
+      default: null
+    },
+    otpExpires: {
+      type: Date,
+      default: null
     }
   },
   { timestamps: true }

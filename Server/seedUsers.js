@@ -31,7 +31,7 @@ async function seed() {
     ];
 
     for (const item of usersToSeed) {
-      let user = await User.findOne({ email: item.email });
+      let user = await User.findOne({ employeeId: item.employeeId });
       const passwordHash = await bcrypt.hash(item.password, 10);
 
       if (!user) {
@@ -47,10 +47,14 @@ async function seed() {
         });
         console.log(`Created user: ${item.email}`);
       } else {
+        user.email = item.email;
+        user.fullName = item.fullName;
+        user.role = item.role;
+        user.department = item.department;
         user.passwordHash = passwordHash;
         user.isActive = true;
         await user.save();
-        console.log(`Updated user password & active state: ${item.email}`);
+        console.log(`Updated user: ${item.email}`);
       }
     }
 

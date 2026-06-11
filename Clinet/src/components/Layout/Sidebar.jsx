@@ -11,7 +11,9 @@ import {
   FiShield,
   FiBarChart2,
   FiSettings,
-  FiX
+  FiX,
+  FiPackage,
+  FiCheckSquare
 } from 'react-icons/fi';
 
 export default function Sidebar({ onClose }) {
@@ -19,7 +21,9 @@ export default function Sidebar({ onClose }) {
 
   const menuItems = [
     { to: '/crm/dashboard', label: 'Dashboard', icon: FiLayout },
+    { to: '/crm/tasks', label: 'My Tasks', icon: FiCheckSquare },
     { to: '/crm/leads', label: 'Leads', icon: FiUsers },
+    { to: '/crm/products', label: 'Products', icon: FiPackage },
     { to: '/crm/quotations', label: 'Quotations', icon: FiFileText },
     { to: '/crm/dispatches', label: 'Dispatches', icon: FiTruck },
     { to: '/crm/payments', label: 'Payments', icon: FiDollarSign },
@@ -28,7 +32,7 @@ export default function Sidebar({ onClose }) {
 
   const adminMenuItems = [
     { to: '/crm/admin', label: 'Admin Panel', icon: FiSettings },
-    { to: '/crm/users', label: 'Users', icon: FiUsers },
+    { to: '/crm/employees', label: 'Employees', icon: FiUsers },
     { to: '/crm/security', label: 'Security', icon: FiShield },
     { to: '/crm/reports', label: 'Reports', icon: FiBarChart2 },
   ];
@@ -60,7 +64,7 @@ export default function Sidebar({ onClose }) {
             key={item.to}
             to={item.to}
             className={({ isActive }) =>
-              `flex items-center space-x-3 px-6 py-3 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors ${isActive ? 'bg-gray-800 text-white border-r-4 border-primary-500' : ''
+              `flex items-center space-x-3 px-6 py-3 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors ${isActive ? 'bg-gray-800 text-white border-r-4 border-indigo-600' : ''
               }`
             }
           >
@@ -79,7 +83,7 @@ export default function Sidebar({ onClose }) {
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) =>
-                  `flex items-center space-x-3 px-6 py-3 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors ${isActive ? 'bg-gray-800 text-white border-r-4 border-primary-500' : ''
+                  `flex items-center space-x-3 px-6 py-3 text-gray-300 hover:bg-gray-800 hover:text-white transition-colors ${isActive ? 'bg-gray-800 text-white border-r-4 border-indigo-600' : ''
                   }`
                 }
               >

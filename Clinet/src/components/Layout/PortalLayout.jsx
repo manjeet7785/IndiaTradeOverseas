@@ -2,12 +2,24 @@ import React, { useState } from 'react';
 import { FiMenu, FiX } from 'react-icons/fi';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
+import { useAuth } from '../../hooks/useAuth';
 
 export default function PortalLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { user } = useAuth();
+  const watermarkText = user ? `${user.fullName} (${user.employeeId})` : 'ITO EXIM CONFIDENTIAL';
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 relative">
+      {/* Pointer-events-none watermark overlay */}
+      <div className="fixed inset-0 pointer-events-none z-50 opacity-[0.03] overflow-hidden select-none flex flex-wrap gap-x-24 gap-y-24 justify-center items-center content-center rotate-[-15deg] scale-150">
+        {Array.from({ length: 60 }).map((_, i) => (
+          <div key={i} className="text-slate-900 font-bold text-sm tracking-widest whitespace-nowrap">
+            {watermarkText} - CONFIDENTIAL
+          </div>
+        ))}
+      </div>
+
       <div className="md:hidden bg-white shadow-sm border-b border-slate-200">
         <div className="flex items-center justify-between px-4 py-3">
           <button

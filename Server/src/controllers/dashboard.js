@@ -4,6 +4,7 @@ const Quotation = require('../models/Quotation');
 const SecurityAlert = require('../models/SecurityAlert');
 const Notification = require('../models/Notification');
 const LeadActivity = require('../models/LeadActivity');
+const TrustedDevice = require('../models/TrustedDevice');
 const { ok, fail } = require('../utils/response');
 const { getLeadDisplay } = require('../utils/workflow');
 const { recordAudit } = require('../utils/tracking');
@@ -374,6 +375,43 @@ async function deleteLead(req, res) {
   }
 }
 
+async function approveDevice(req, res) {
+  try {
+    const device = await TrustedDevice.findByIdAndUpdate(
+      req.params.deviceId,
+      { isApproved: true, approvedBy: req.user._id, verifiedAt: new Date(), revokedAt: null },
+      { new: true }
+    );
+    if (!device) return fail(res, 404, 'VALIDATION_FAILED', 'Device not found');
+    return ok(res, { device, message: 'Device approved successfully' });
+  } catch (error) {
+    return fail(res, 500, 'SERVER_ERROR', error.message);
+  }
+}
+
+async function revokeDevice(req, res) {
+  try {
+    const device = await TrustedDevice.findByIdAndUpdate(
+      req.params.deviceId,
+      { isApproved: false, revokedAt: new Date() },
+      { new: true }
+    );
+    if (!device) return fail(res, 404, 'VALIDATION_FAILED', 'Device not found');
+    return ok(res, { device, message: 'Device status revoked successfully' });
+  } catch (error) {
+    return fail(res, 500, 'SERVER_ERROR', error.message);
+  }
+}
+
+async function listAllDevices(req, res) {
+  try {
+    const devices = await TrustedDevice.find().populate('userId', 'fullName email employeeId');
+    return ok(res, { devices });
+  } catch (error) {
+    return fail(res, 500, 'SERVER_ERROR', error.message);
+  }
+}
+
 module.exports = {
   dashboardSummary,
   pipeline,
@@ -388,5 +426,8 @@ module.exports = {
   getNotifications,
   markNotificationRead,
   deleteUser,
-  deleteLead
+  deleteLead,
+  approveDevice,
+  revokeDevice,
+  listAllDevices
 };

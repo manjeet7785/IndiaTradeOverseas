@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FiMessageCircle, FiX, FiSend, FiCornerDownLeft } from 'react-icons/fi';
 import { chatApi } from '../../api/chat';
+import { leadsApi } from '../../api/leads';
 import toast from 'react-hot-toast';
 
 export default function ChatWidget() {
@@ -114,6 +115,43 @@ export default function ChatWidget() {
     }
   };
 
+  const handleQuickOptionClick = async (messageText) => {
+    if (!session?.sessionId) return;
+    try {
+      const response = await chatApi.sendMessage(session.sessionId, messageText);
+      if (response.success) {
+        fetchMessages();
+      }
+    } catch (error) {
+      console.error('Error sending quick option message:', error);
+    }
+  };
+
+  const handleCreateCrmLeadFromChat = async () => {
+    if (!session) return;
+    try {
+      const chatLogsText = messages.map(m => `${m.senderName}: ${m.message}`).join("\n");
+      const response = await leadsApi.createLead({
+        customerName: session.clientName,
+        email: session.clientEmail || 'chat@example.com',
+        phone: '9876543210',
+        productCategory: 'STONE',
+        quantity: '500 MT',
+        destination: 'Kishanganj, Bihar',
+        chatSummary: chatLogsText || 'Lead created from support chat widget.'
+      });
+      if (response.success) {
+        toast.success('CRM Lead generated successfully from this chat!', {
+          icon: '🚀',
+          style: { borderRadius: '10px', background: '#333', color: '#fff' }
+        });
+      }
+    } catch (error) {
+      console.error('Error creating lead from chat:', error);
+      toast.error('Failed to create lead.');
+    }
+  };
+
   return (
     <div className="fixed bottom-6 right-6 z-50 font-sans">
       {/* Floating Action Button */}
@@ -224,6 +262,36 @@ export default function ChatWidget() {
               </>
             )}
           </div>
+
+          {/* Predefined Quick Options */}
+          {session && (
+            <div className="px-4 py-2 bg-slate-100 border-t border-slate-200 space-y-1.5 select-none">
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-wider">Quick Actions</p>
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => handleQuickOptionClick("I want to inquire about Stone Aggregates delivery.")}
+                  className="px-2 py-0.5 text-[10px] bg-white border border-slate-200 rounded text-slate-700 hover:bg-slate-50 transition"
+                >
+                  🪨 Stone
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleQuickOptionClick("I need Coal bulk pricing.")}
+                  className="px-2 py-0.5 text-[10px] bg-white border border-slate-200 rounded text-slate-700 hover:bg-slate-50 transition"
+                >
+                  🔥 Coal
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreateCrmLeadFromChat}
+                  className="px-2 py-0.5 text-[10px] bg-blue-50 border border-blue-200 rounded text-blue-700 hover:bg-blue-100 font-semibold transition"
+                >
+                  🚀 Create CRM Lead
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Footer input */}
           {session && (

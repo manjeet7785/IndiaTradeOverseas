@@ -1,1 +1,27 @@
 @import "tailwindcss";
+
+@theme {
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-200: #bfdbfe;
+  --color-primary-300: #93c5fd;
+  --color-primary-400: #60a5fa;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+  --color-primary-800: #1e40af;
+  --color-primary-900: #1e3a8a;
+  --color-primary-950: #172554;
+}
+
+@utility btn-primary {
+  @apply bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm px-4 py-2.5 rounded-xl transition duration-150 shadow shadow-indigo-500/10 hover:shadow-indigo-500/20 active:scale-95;
+}
+
+@utility btn-secondary {
+  @apply bg-white hover:bg-slate-50 text-slate-700 font-semibold text-sm px-4 py-2.5 border border-slate-200 rounded-xl transition duration-150 active:scale-95;
+}
+
+@utility card {
+  @apply bg-white border border-slate-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition duration-200;
+}

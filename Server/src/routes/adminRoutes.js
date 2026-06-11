@@ -2,7 +2,7 @@ const router = require('express').Router();
 const auth = require('../middleware/auth');
 const rbac = require('../middleware/rbac');
 const User = require('../models/User');
-const { dashboardSummary, pipeline, employeePerformance, securityAlerts, quotationQueue, assignLead, deactivateUser, exportPermission, deleteUser, deleteLead } = require('../controllers/dashboard');
+const { dashboardSummary, pipeline, employeePerformance, securityAlerts, quotationQueue, assignLead, deactivateUser, exportPermission, deleteUser, deleteLead, approveDevice, revokeDevice, listAllDevices } = require('../controllers/dashboard');
 const { adminSummary } = require('../controllers/adminController');
 const { ok, fail } = require('../utils/response');
 
@@ -98,6 +98,23 @@ router.patch('/users/:userId/department', async (req, res) => {
 
 // Update export permission
 router.patch('/users/:userId/export-permission', exportPermission);
+
+// Update product upload permission
+router.patch('/users/:userId/product-upload-permission', async (req, res) => {
+  try {
+    const { productUploadPermission } = req.body;
+    const user = await User.findByIdAndUpdate(
+      req.params.userId,
+      { productUploadPermission: Boolean(productUploadPermission) },
+      { new: true }
+    ).select('-passwordHash');
+
+    if (!user) return fail(res, 404, 'VALIDATION_FAILED', 'User not found');
+    return ok(res, { user });
+  } catch (error) {
+    return fail(res, 500, 'SERVER_ERROR', error.message);
+  }
+});
 
 // Delete user (employee)
 router.delete('/users/:userId', deleteUser);
@@ -200,6 +217,11 @@ router.get('/audit-logs', async (req, res) => {
     return fail(res, 500, 'SERVER_ERROR', error.message);
   }
 });
+
+// Device Management
+router.get('/devices', listAllDevices);
+router.patch('/devices/:deviceId/approve', approveDevice);
+router.patch('/devices/:deviceId/revoke', revokeDevice);
 
 // ============= REPORT ROUTES =============
 

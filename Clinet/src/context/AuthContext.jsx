@@ -29,8 +29,18 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (credentials) => {
-    const response = await authApi.login(credentials);
-    if (response.success) {
+    const deviceHash = localStorage.getItem('deviceHash');
+    const response = await authApi.login({ ...credentials, deviceHash });
+    if (response.success && !response.data.requiresOtp) {
+      setUser(response.data.user);
+    }
+    return response;
+  };
+
+  const verifyOtp = async (otpData) => {
+    const deviceHash = localStorage.getItem('deviceHash');
+    const response = await authApi.verifyOtp({ ...otpData, deviceHash });
+    if (response.success && !response.data.requiresDeviceApproval) {
       setUser(response.data.user);
     }
     return response;
@@ -50,7 +60,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, verifyOtp, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

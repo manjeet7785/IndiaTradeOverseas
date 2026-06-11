@@ -238,16 +238,18 @@ const Signup = () => {
               <select
                 id="role"
                 name="role"
+                required
                 value={formData.role}
                 onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                 className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-white/50 backdrop-blur-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow appearance-none cursor-pointer"
               >
+                <option value="" disabled>Select Role *</option>
                 {roleOptions.map(option => (
                   <option key={option.value} value={option.value}>{option.label}</option>
                 ))}
               </select>
               <label htmlFor="role" className="absolute -top-2 left-3 px-1 text-xs text-gray-500 bg-white/80 rounded-md transition-all duration-200">
-                Role
+                Role *
               </label>
             </div>
 
@@ -259,10 +261,12 @@ const Signup = () => {
               <select
                 id="department"
                 name="department"
+                required
                 value={formData.department}
                 onChange={(e) => setFormData({ ...formData, department: e.target.value })}
                 className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-white/50 backdrop-blur-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow appearance-none cursor-pointer"
               >
+                <option value="" disabled>Select Department *</option>
                 {departmentOptions.map(option => (
                   <option key={option.value} value={option.value}>
                     {option.label}
@@ -270,7 +274,7 @@ const Signup = () => {
                 ))}
               </select>
               <label htmlFor="department" className="absolute -top-2 left-3 px-1 text-xs text-gray-500 bg-white/80 rounded-md transition-all duration-200">
-                Department
+                Department *
               </label>
             </div>
           </div>

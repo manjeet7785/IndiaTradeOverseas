@@ -1,12 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FiFilter, FiSearch } from 'react-icons/fi';
+import { productsApi } from '../../api/products';
 
 export default function Products() {
   const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState('all');
+  const [dbProducts, setDbProducts] = useState([]);
 
-  const products = [
+  useEffect(() => {
+    const fetchDbProducts = async () => {
+      try {
+        const response = await productsApi.getProducts('all');
+        if (response.success) {
+          setDbProducts(response.data.products);
+        }
+      } catch (error) {
+        console.error('Error fetching database products:', error);
+      }
+    };
+    fetchDbProducts();
+  }, []);
+
+  const staticProducts = [
     { id: 1, name: 'Indian Granite', category: 'stone', origin: 'India', price: '$50-200/ton', image: 'https://images.unsplash.com/photo-1549887534-1541e9326642?w=400', description: 'Premium quality granite for construction' },
     { id: 2, name: 'Italian Marble', category: 'stone', origin: 'Italy', price: '$100-500/ton', image: 'https://images.unsplash.com/photo-1569691105751-88df003de7a4?w=400', description: 'Luxury marble for flooring and decor' },
     { id: 3, name: 'Indonesian Coal', category: 'coal', origin: 'Indonesia', price: '$80-120/ton', image: 'https://images.unsplash.com/photo-1581094288338-1a3eb6e1c5a4?w=400', description: 'High-calorie thermal coal' },
@@ -24,6 +40,8 @@ export default function Products() {
     { value: 'tea', label: 'Tea' },
     { value: 'rice', label: 'Rice' }
   ];
+
+  const products = [...dbProducts, ...staticProducts];
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -70,7 +88,7 @@ export default function Products() {
       {/* Products Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {filteredProducts.map(product => (
-          <div key={product.id} className="card hover:shadow-lg transition">
+          <div key={product._id || product.id} className="card hover:shadow-lg transition">
             <img src={product.image} alt={product.name} className="w-full h-64 object-cover rounded-lg mb-4" />
             <h3 className="text-xl font-semibold mb-2">{product.name}</h3>
             <p className="text-gray-600 mb-2">{product.description}</p>

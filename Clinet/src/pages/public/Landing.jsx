@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
   FiTruck, 
@@ -13,9 +13,38 @@ import {
   FiFileText, 
   FiCheckCircle 
 } from 'react-icons/fi';
+import { productsApi } from '../../api/products';
 
 export default function Landing() {
   const [activeStep, setActiveStep] = useState(0);
+  const [dbProducts, setDbProducts] = useState([]);
+
+  useEffect(() => {
+    const fetchDbProducts = async () => {
+      try {
+        const response = await productsApi.getProducts('all');
+        if (response.success) {
+          // Map DB products category to matching display categories
+          const displayCategories = {
+            stone: 'Minerals & Construction',
+            coal: 'Energy Commodities',
+            tea: 'Agro-Products',
+            rice: 'Food Supplies'
+          };
+          const mapped = response.data.products.map(p => ({
+            name: p.name,
+            image: p.image,
+            category: displayCategories[p.category] || p.category,
+            description: p.description
+          }));
+          setDbProducts(mapped);
+        }
+      } catch (error) {
+        console.error('Error fetching database products for Landing:', error);
+      }
+    };
+    fetchDbProducts();
+  }, []);
 
   const features = [
     { 
@@ -50,7 +79,7 @@ export default function Landing() {
     }
   ];
 
-  const products = [
+  const staticProducts = [
     { 
       name: 'Natural Stones', 
       image: 'https://images.unsplash.com/photo-1549887534-1541e9326642?w=600', 
@@ -76,6 +105,8 @@ export default function Landing() {
       description: 'Long-grain, aromatic aged Basmati and non-basmati varieties processed in state-of-the-art mills.' 
     }
   ];
+
+  const products = [...dbProducts, ...staticProducts];
 
   const steps = [
     {

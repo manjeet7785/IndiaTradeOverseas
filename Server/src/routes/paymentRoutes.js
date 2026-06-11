@@ -1,11 +1,28 @@
 const router = require('express').Router();
 const auth = require('../middleware/auth');
 const rbac = require('../middleware/rbac');
-const { createPayment, listPayments, updatePaymentStatus } = require('../controllers/paymentController');
+const { upload } = require('../controllers/documentController');
+const { createPayment, listPayments, updatePaymentStatus, listOutstandingPayments, triggerReminder } = require('../controllers/paymentController');
 
-router.use(auth, rbac('ADMIN', 'MANAGER', 'ACCOUNTS'));
-router.post('/', createPayment);
+// All payment routes require authentication
+router.use(auth);
+
+// Create new payment (restricted to Admin, Manager, and Accounts)
+router.post('/', rbac('ADMIN', 'MANAGER', 'ACCOUNTS'), createPayment);
+
+// Get outstanding payments
+router.get('/outstanding', listOutstandingPayments);
+
+// Get all payments
 router.get('/', listPayments);
-router.patch('/:id', updatePaymentStatus);
+
+// Update payment details/status or upload invoice/payment proof files
+router.patch('/:id', upload.fields([
+  { name: 'invoice', maxCount: 1 },
+  { name: 'paymentProof', maxCount: 1 }
+]), updatePaymentStatus);
+
+// Trigger payment reminder to customer
+router.post('/:id/reminder', triggerReminder);
 
 module.exports = router;

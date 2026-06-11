@@ -25,9 +25,16 @@ export default function Contact() {
   };
 
   const contactInfo = [
-    { icon: FiMapPin, title: 'Visit Us', details: ['123 Business Park', 'Mumbai, India 400001'] },
-    { icon: FiPhone, title: 'Call Us', details: ['+91 1234567890', '+91 9876543210'] },
-    { icon: FiMail, title: 'Email Us', details: ['info@itoexim.com', 'sales@itoexim.com'] },
+    {
+      icon: FiMapPin,
+      title: 'Visit Us',
+      details: [
+        'Vill-Deramari, Tola-Maujabari, panch-Deramari, Block-Khochadham',
+        'dist - kishanganj, Near imambada pani bagh, Kishanganj, Bihar - 855107'
+      ]
+    },
+    { icon: FiPhone, title: 'Call Us', details: ['+91 8043857653'] },
+    { icon: FiMail, title: 'Email Us', details: ['indiatradeoverseas@gmail.com'] },
     { icon: FiClock, title: 'Working Hours', details: ['Mon-Fri: 9:00 AM - 6:00 PM', 'Sat: 10:00 AM - 2:00 PM'] }
   ];
 
@@ -58,10 +65,18 @@ export default function Contact() {
           ))}
 
           {/* Map */}
-          <div className="card">
-            <h3 className="font-semibold text-gray-900 mb-4">Find Us</h3>
-            <div className="h-64 bg-gray-200 rounded-lg flex items-center justify-center">
-              <p className="text-gray-500">Map View - Google Maps Integration</p>
+          <div className="card overflow-hidden p-0">
+            <div className="p-6 pb-3">
+              <h3 className="font-semibold text-gray-900">Find Us</h3>
+            </div>
+            <div className="h-64 w-full bg-gray-100">
+              <iframe
+                title="India Trade Overseas Location"
+                src="https://maps.google.com/maps?q=26.1800553,87.9105314&t=&z=15&ie=UTF8&iwloc=&output=embed"
+                className="w-full h-full border-0"
+                allowFullScreen=""
+                loading="lazy"
+              ></iframe>
             </div>
           </div>
         </div>

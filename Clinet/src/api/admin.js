@@ -61,6 +61,11 @@ export const adminApi = {
     return response.data;
   },
 
+  async updateProductUploadPermission(userId, productUploadPermission) {
+    const response = await axiosInstance.patch(`/admin/users/${userId}/product-upload-permission`, { productUploadPermission });
+    return response.data;
+  },
+
   async getAuditLogs(limit = 100) {
     const response = await axiosInstance.get(`/admin/audit-logs?limit=${limit}`);
     return response.data;
@@ -78,6 +83,31 @@ export const adminApi = {
 
   async deleteLead(leadId) {
     const response = await axiosInstance.delete(`/admin/leads/${leadId}`);
+    return response.data;
+  },
+
+  async getDevices() {
+    const response = await axiosInstance.get('/admin/devices');
+    return response.data;
+  },
+
+  async approveDevice(deviceId) {
+    const response = await axiosInstance.patch(`/admin/devices/${deviceId}/approve`);
+    return response.data;
+  },
+
+  async revokeDevice(deviceId) {
+    const response = await axiosInstance.patch(`/admin/devices/${deviceId}/revoke`);
+    return response.data;
+  },
+
+  async revealField(revealData) {
+    const response = await axiosInstance.post('/security/reveal', revealData);
+    return response.data;
+  },
+
+  async logExportAttempt(exportData) {
+    const response = await axiosInstance.post('/security/export-attempt', exportData);
     return response.data;
   }
 };

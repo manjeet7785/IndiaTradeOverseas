@@ -4,7 +4,7 @@ import { leadsApi } from '../../api/leads';
 import { quotationsApi } from '../../api/quotations';
 import { adminApi } from '../../api/admin';
 import { useAuth } from '../../hooks/useAuth';
-import { FiArrowLeft, FiActivity, FiFileText, FiTruck, FiDollarSign, FiSend, FiTrash2 } from 'react-icons/fi';
+import { FiArrowLeft, FiActivity, FiFileText, FiTruck, FiDollarSign, FiSend, FiTrash2, FiEye, FiShield } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 export default function LeadDetail() {
@@ -18,6 +18,12 @@ export default function LeadDetail() {
   const [showQuotationModal, setShowQuotationModal] = useState(false);
   const [newActivity, setNewActivity] = useState({ note: '', actionType: 'FOLLOW_UP', nextFollowupAt: '' });
   const [quotationData, setQuotationData] = useState({ employeeRequestedPrice: '', paymentTerms: '', validityDays: 7 });
+
+  const [revealedPhone, setRevealedPhone] = useState('');
+  const [revealedEmail, setRevealedEmail] = useState('');
+  const [showWarningModal, setShowWarningModal] = useState(false);
+  const [revealFieldTarget, setRevealFieldTarget] = useState('');
+  const [reason, setReason] = useState('');
 
   const [users, setUsers] = useState([]);
   const [assignee, setAssignee] = useState('');
@@ -138,6 +144,39 @@ export default function LeadDetail() {
     }
   };
 
+  const handleUnmaskClick = (field) => {
+    setRevealFieldTarget(field);
+    setShowWarningModal(true);
+  };
+
+  const handleRevealSubmit = async (e) => {
+    e.preventDefault();
+    if (!reason.trim()) return;
+    try {
+      const deviceHash = localStorage.getItem('deviceHash');
+      const response = await adminApi.revealField({
+        entityType: 'LEAD',
+        entityId: id,
+        fieldName: revealFieldTarget,
+        reason,
+        deviceHash
+      });
+      if (response.success) {
+        if (revealFieldTarget === 'phone') {
+          setRevealedPhone(response.data.value);
+        } else {
+          setRevealedEmail(response.data.value);
+        }
+        toast.success('Field revealed successfully');
+        setShowWarningModal(false);
+        setReason('');
+      }
+    } catch (error) {
+      console.error('Error revealing field:', error);
+      toast.error(error.response?.data?.message || 'Reveal attempt rejected.');
+    }
+  };
+
   const getStageColor = (stage) => {
     const colors = {
       NEW_LEAD: 'bg-blue-100 text-blue-800',
@@ -157,7 +196,7 @@ export default function LeadDetail() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
@@ -208,13 +247,31 @@ export default function LeadDetail() {
 
       {/* Lead Info Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-        <div className="card">
-          <p className="text-sm text-gray-600">Phone</p>
-          <p className="text-lg font-semibold mt-1 text-ellipsis overflow-hidden">{lead.phoneMasked || 'N/A'}</p>
+        <div className="card relative">
+          <div className="flex justify-between items-start">
+            <p className="text-sm text-gray-600">Phone</p>
+            <button
+              onClick={() => handleUnmaskClick('phone')}
+              className="text-slate-400 hover:text-blue-600 transition"
+              title="Reveal phone"
+            >
+              <FiEye size={16} />
+            </button>
+          </div>
+          <p className="text-lg font-semibold mt-1 text-ellipsis overflow-hidden">{revealedPhone || lead.phoneMasked || 'N/A'}</p>
         </div>
-        <div className="card">
-          <p className="text-sm text-gray-600">Email</p>
-          <p className="text-lg font-semibold mt-1 text-ellipsis overflow-hidden">{lead.emailMasked || 'N/A'}</p>
+        <div className="card relative">
+          <div className="flex justify-between items-start">
+            <p className="text-sm text-gray-600">Email</p>
+            <button
+              onClick={() => handleUnmaskClick('email')}
+              className="text-slate-400 hover:text-blue-600 transition"
+              title="Reveal email"
+            >
+              <FiEye size={16} />
+            </button>
+          </div>
+          <p className="text-lg font-semibold mt-1 text-ellipsis overflow-hidden">{revealedEmail || lead.emailMasked || 'N/A'}</p>
         </div>
         <div className="card">
           <p className="text-sm text-gray-600">Product</p>
@@ -332,7 +389,7 @@ export default function LeadDetail() {
               key={stage}
               onClick={() => handleStageChange(stage)}
               className={`px-3 py-1 rounded-full text-sm font-medium transition ${lead.stage === stage
-                ? getStageColor(stage) + ' ring-2 ring-offset-2 ring-primary-500'
+                ? getStageColor(stage) + ' ring-2 ring-offset-2 ring-indigo-500'
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                 }`}
             >
@@ -350,14 +407,14 @@ export default function LeadDetail() {
             <p className="text-gray-500 text-center py-4">No activities recorded yet</p>
           ) : (
             activities.map((activity) => (
-              <div key={activity._id} className="border-l-4 border-primary-500 pl-4 py-2">
+              <div key={activity._id} className="border-l-4 border-indigo-500 pl-4 py-2">
                 <div className="flex justify-between items-start mb-2">
                   <span className="font-semibold text-gray-900">{activity.actionType}</span>
                   <span className="text-sm text-gray-500">{new Date(activity.createdAt).toLocaleString()}</span>
                 </div>
                 <p className="text-gray-600">{activity.note}</p>
                 {activity.nextFollowupAt && (
-                  <p className="text-sm text-primary-600 mt-1">Next Follow-up: {new Date(activity.nextFollowupAt).toLocaleDateString()}</p>
+                  <p className="text-sm text-indigo-600 mt-1">Next Follow-up: {new Date(activity.nextFollowupAt).toLocaleDateString()}</p>
                 )}
               </div>
             ))
@@ -459,6 +516,51 @@ export default function LeadDetail() {
                 <button type="button" onClick={() => setShowQuotationModal(false)} className="btn-secondary flex-1">Cancel</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Warning Justification Modal */}
+      {showWarningModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden transform transition-all border border-slate-100">
+            <div className="p-6">
+              <div className="flex items-center space-x-3 mb-4 text-orange-600">
+                <FiShield size={24} />
+                <h3 className="text-lg font-bold text-slate-800">Security Access Audit</h3>
+              </div>
+              <p className="text-sm text-slate-600 mb-5 leading-relaxed">
+                WARNING: Unmasking sensitive lead details is strictly monitored and audited. Please enter your business reason to justify revealing this field.
+              </p>
+              <form onSubmit={handleRevealSubmit}>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Business Justification</label>
+                  <textarea
+                    required
+                    rows="3"
+                    value={reason}
+                    onChange={(e) => setReason(e.target.value)}
+                    className="w-full px-3.5 py-2.5 border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm placeholder:text-slate-400 shadow-inner"
+                    placeholder="e.g., Calling customer for quotation review..."
+                  />
+                </div>
+                <div className="flex space-x-3 mt-6">
+                  <button
+                    type="submit"
+                    className="flex-1 py-2.5 text-sm font-semibold rounded-xl text-white bg-blue-600 hover:bg-blue-700 shadow transition-colors"
+                  >
+                    Confirm Access
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowWarningModal(false); setReason(''); }}
+                    className="flex-1 py-2.5 text-sm font-semibold rounded-xl text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       )}

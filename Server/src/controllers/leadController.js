@@ -103,7 +103,10 @@ async function listLeads(req, res) {
     const filter = {};
     if (req.query.stage) filter.stage = req.query.stage;
     if (req.user.role !== 'ADMIN') {
-      filter.assignedTo = req.user._id;
+      filter.$or = [
+        { assignedTo: req.user._id },
+        { assignedDepartment: req.user.department }
+      ];
     } else if (req.query.assignedTo) {
       filter.assignedTo = req.query.assignedTo;
     }
@@ -243,13 +246,63 @@ async function assignLead(req, res) {
   }
 }
 
+async function scoreLead(req, res) {
+  try {
+    const { leadId, quantity, hasLOI, paymentTerms } = req.body;
+    
+    let qty = 0;
+    let loi = false;
+    let pt = '';
+    
+    if (leadId) {
+      const lead = await Lead.findById(leadId);
+      if (!lead) return fail(res, 404, 'VALIDATION_FAILED', 'Lead not found');
+      qty = parseFloat(lead.quantity) || 0;
+      loi = lead.remarks?.toLowerCase().includes('loi') || lead.chatSummary?.toLowerCase().includes('loi') || false;
+      pt = lead.remarks || '';
+    } else {
+      qty = parseFloat(quantity) || 0;
+      loi = Boolean(hasLOI);
+      pt = paymentTerms || '';
+    }
+
+    let score = 0;
+    let priority = 'COLD';
+
+    if (qty > 1000) score += 40;
+    else if (qty > 100) score += 20;
+
+    if (loi) score += 40;
+
+    if (pt.toLowerCase().includes('advance') || pt.toLowerCase().includes('+')) score += 20;
+
+    if (score >= 80) priority = 'HOT';
+    else if (score >= 40) priority = 'WARM';
+
+    return ok(res, { score, priority, criteria: { qty, loi, pt } });
+  } catch (error) {
+    return fail(res, 500, 'SERVER_ERROR', error.message);
+  }
+}
+
+async function listUnassignedLeads(req, res) {
+  try {
+    const leads = await Lead.find({ assignedTo: null }).sort({ createdAt: -1 });
+    return ok(res, { leads: leads.map(l => getLeadDisplay(l)) });
+  } catch (error) {
+    return fail(res, 500, 'SERVER_ERROR', error.message);
+  }
+}
+
 module.exports = {
   createFromChat,
   listLeads,
   getLeadById,
   addActivity,
   updateStage,
-  assignLead
+  assignLead,
+  scoreLead,
+  listUnassignedLeads
 };
 
 

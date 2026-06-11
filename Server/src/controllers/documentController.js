@@ -51,10 +51,64 @@ async function uploadDocument(req, res) {
   }
 }
 
+async function canAccessDocument(user, doc) {
+  if (!user) return false;
+  if (user.role === 'ADMIN' || user.role === 'MANAGER') return true;
+
+  if (doc.ownerType === 'PAYMENT') {
+    return user.role === 'ACCOUNTS';
+  }
+
+  if (doc.ownerType === 'DISPATCH') {
+    const Dispatch = require('../models/Dispatch');
+    const dispatch = await Dispatch.findById(doc.ownerId);
+    if (!dispatch) return false;
+    const Lead = require('../models/Lead');
+    const lead = await Lead.findById(dispatch.leadId);
+    if (!lead) return false;
+    const { canAccessLead } = require('../utils/workflow');
+    return canAccessLead(user, lead);
+  }
+
+  if (doc.ownerType === 'LEAD') {
+    const Lead = require('../models/Lead');
+    const lead = await Lead.findById(doc.ownerId);
+    if (!lead) return false;
+    const { canAccessLead } = require('../utils/workflow');
+    return canAccessLead(user, lead);
+  }
+
+  if (doc.ownerType === 'QUOTATION') {
+    const Quotation = require('../models/Quotation');
+    const quotation = await Quotation.findById(doc.ownerId);
+    if (!quotation) return false;
+    const Lead = require('../models/Lead');
+    const lead = await Lead.findById(quotation.leadId);
+    if (!lead) return false;
+    const { canAccessLead } = require('../utils/workflow');
+    return canAccessLead(user, lead);
+  }
+
+  return true;
+}
+
 async function getDocument(req, res) {
   try {
     const doc = await Document.findById(req.params.id);
     if (!doc || doc.isDeleted) return fail(res, 404, 'VALIDATION_FAILED', 'Document not found');
+
+    const allowed = await canAccessDocument(req.user, doc);
+    if (!allowed) return fail(res, 403, 'OWNERSHIP_FORBIDDEN', 'Access denied: Unauthorized to view this document');
+
+    await recordAudit({
+      actorId: req.user ? req.user._id : null,
+      actionType: 'DOCUMENT_VIEWED',
+      entityType: 'DOCUMENT',
+      entityId: doc._id.toString(),
+      severity: 'LOW',
+      metadata: { ownerType: doc.ownerType, ownerId: doc.ownerId, fileName: doc.fileName }
+    });
+
     return ok(res, { document: doc });
   } catch (error) {
     return fail(res, 500, 'SERVER_ERROR', error.message);
@@ -66,6 +120,19 @@ async function downloadDocument(req, res) {
     const doc = await Document.findById(req.params.id);
     if (!doc || doc.isDeleted) return fail(res, 404, 'VALIDATION_FAILED', 'Document not found');
     if (!fs.existsSync(doc.storagePath)) return fail(res, 404, 'VALIDATION_FAILED', 'File missing on disk');
+
+    const allowed = await canAccessDocument(req.user, doc);
+    if (!allowed) return fail(res, 403, 'OWNERSHIP_FORBIDDEN', 'Access denied: Unauthorized to download this document');
+
+    await recordAudit({
+      actorId: req.user ? req.user._id : null,
+      actionType: 'DOCUMENT_DOWNLOADED',
+      entityType: 'DOCUMENT',
+      entityId: doc._id.toString(),
+      severity: 'LOW',
+      metadata: { ownerType: doc.ownerType, ownerId: doc.ownerId, fileName: doc.fileName }
+    });
+
     return res.download(doc.storagePath, doc.fileName);
   } catch (error) {
     return fail(res, 500, 'SERVER_ERROR', error.message);

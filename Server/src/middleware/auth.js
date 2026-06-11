@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const TrustedDevice = require('../models/TrustedDevice');
 
 async function auth(req, res, next) {
   const header = req.headers.authorization || '';
@@ -16,6 +17,8 @@ async function auth(req, res, next) {
     if (!user || !user.isActive) {
       return res.status(401).json({ success: false, errorCode: 'AUTH_INVALID_CREDENTIALS', message: 'Invalid user' });
     }
+
+
 
     req.user = user;
     next();

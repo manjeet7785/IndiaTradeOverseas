@@ -14,6 +14,7 @@ const chatRoutes = require('./src/routes/chatRoutes');
 const dotenv = require('dotenv').config();
 const aiLeadRoutes = require('./src/routes/aiLeadRoutes');
 const dashboardRoutes = require('./src/routes/dashboardRoutes');
+const productRoutes = require('./src/routes/productRoutes');
 const cors = require('cors');
 
 app.use(cors());
@@ -30,13 +31,16 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 app.use('/api/leads', leadRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/products', productRoutes);
 
 app.use('/api/admin', adminRoutes);
 // app.use('/api/ai-leads', aiLeadRoutes);
 app.use('/api/dispatch', dispatchRoutes);
+app.use('/api/v1/dispatches', dispatchRoutes);
 app.use('/api/documents', documentRoutes);
 
 app.use('/api/payments', paymentRoutes);
+app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/security', securityRoutes);
 app.use('/api/quotations', quotationRoutes);
