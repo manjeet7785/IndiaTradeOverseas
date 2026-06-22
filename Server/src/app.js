@@ -3,7 +3,6 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const mongoose = require('mongoose');
-const crypto = require('crypto');
 const corsOptions = require('./config/cors');
 const { rateLimiter } = require('./middlewares/rateLimit.middleware');
 const { errorHandler } = require('./middlewares/error.middleware');
@@ -23,40 +22,29 @@ const chatRoutes = require('./modules/chat/chat.routes');
 
 const app = express();
 
+
 app.use(helmet());
+
 
 app.use(morgan('dev'));
 
-const allowedOrigins = [
-  'https://india-trade-overseas.vercel.app',
-  'http://localhost:5173'
-];
 
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  },
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
-  credentials: true
-}));
+app.use(cors());
 
-app.options('*', cors());
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
+
 app.use(rateLimiter);
 
+
 app.use((req, res, next) => {
+  const crypto = require('crypto');
   req.id = 'req_' + crypto.randomBytes(6).toString('hex');
   next();
 });
+
 
 const healthCheck = (req, res) => {
   const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
@@ -71,6 +59,7 @@ const healthCheck = (req, res) => {
 
 app.get('/api/health', healthCheck);
 app.get('/api/v1/health', healthCheck);
+
 
 const apiRoutes = [
   { path: '/auth', router: authRoutes },
@@ -95,7 +84,8 @@ apiRoutes.forEach(route => {
   app.use(`/api/v1${route.path}`, route.router);
 });
 
-const adminFallbackRouter = express.Router();
+
+const adminFallbackRouter = require('express').Router();
 const rbac = require('./middlewares/rbac.middleware');
 const { authenticate } = require('./middlewares/auth.middleware');
 
@@ -106,7 +96,6 @@ adminFallbackRouter.use(authenticate, rbac('ADMIN', 'MANAGER'));
 adminFallbackRouter.get('/dashboard/summary', require('./modules/reports/report.controller').getAdminSummary);
 adminFallbackRouter.get('/dashboard/pipeline', require('./modules/reports/report.controller').getPipelineReport);
 adminFallbackRouter.get('/dashboard/employee-performance', require('./modules/reports/report.controller').getPerformanceReport);
-
 adminFallbackRouter.get('/dashboard/security-alerts', async (req, res, next) => {
   try {
     const SecurityAlert = require('./modules/security-audit/securityAlert.model');
@@ -114,9 +103,7 @@ adminFallbackRouter.get('/dashboard/security-alerts', async (req, res, next) => 
     return require('./utils/response').ok(res, { alerts }, 'Alerts list', 200, req);
   } catch (error) { next(error); }
 });
-
 adminFallbackRouter.patch('/security/alerts/:alertId/resolve', require('./modules/security-audit/audit.controller').resolveAlert);
-
 adminFallbackRouter.get('/dashboard/quotation-queue', async (req, res, next) => {
   try {
     const Quotation = require('./modules/quotations/quotation.model');
@@ -139,7 +126,6 @@ adminFallbackRouter.patch('/users/:id/payment-permission', require('./modules/us
 adminFallbackRouter.patch('/users/:id/quotation-permission', require('./modules/users/user.controller').updateUserPermissions);
 adminFallbackRouter.delete('/users/:id', require('./modules/users/user.controller').deleteUser);
 adminFallbackRouter.delete('/leads/:leadId', rbac('ADMIN'), require('./modules/leads/lead.controller').deleteLead);
-
 adminFallbackRouter.get('/devices', async (req, res, next) => {
   try {
     const TrustedDevice = require('./modules/auth/trustedDevice.model');
@@ -147,7 +133,6 @@ adminFallbackRouter.get('/devices', async (req, res, next) => {
     return require('./utils/response').ok(res, { devices }, 'Devices list retrieved', 200, req);
   } catch (error) { next(error); }
 });
-
 adminFallbackRouter.patch('/devices/:deviceId/approve', async (req, res, next) => {
   try {
     const TrustedDevice = require('./modules/auth/trustedDevice.model');
@@ -160,7 +145,6 @@ adminFallbackRouter.patch('/devices/:deviceId/approve', async (req, res, next) =
     return require('./utils/response').ok(res, { device }, 'Device approved successfully', 200, req);
   } catch (error) { next(error); }
 });
-
 adminFallbackRouter.patch('/devices/:deviceId/revoke', async (req, res, next) => {
   try {
     const TrustedDevice = require('./modules/auth/trustedDevice.model');
@@ -176,6 +160,7 @@ adminFallbackRouter.patch('/devices/:deviceId/revoke', async (req, res, next) =>
 
 app.use('/api/admin', adminFallbackRouter);
 app.use('/api/v1/admin', adminFallbackRouter);
+
 
 app.use(errorHandler);
 
