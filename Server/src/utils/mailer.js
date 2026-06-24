@@ -36,13 +36,17 @@ const transporter = nodemailer.createTransport({
 });
 
 
-transporter.verify((error, success) => {
-  if (error) {
-    console.error('Error connecting to email server (pre-check):', error.message);
-  } else {
-    console.log('Email server is ready to send messages');
-  }
-});
+if (process.env.RENDER === 'true') {
+  console.log('Running on Render: Outbound SMTP ports (25, 465, 587) are blocked on Render\'s Free tier. The application will use MOCK mode for email sending. You can view generated OTP codes directly in these logs.');
+} else {
+  transporter.verify((error, success) => {
+    if (error) {
+      console.error('Error connecting to email server (pre-check):', error.message);
+    } else {
+      console.log('Email server is ready to send messages');
+    }
+  });
+}
 
 const sendEmail = async (to, subject, text, html) => {
   // Extract OTP code from the HTML template if present
