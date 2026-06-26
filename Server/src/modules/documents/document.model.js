@@ -20,7 +20,13 @@ const documentSchema = new mongoose.Schema(
     uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     accessLevel: {
       type: String,
-      enum: ['PUBLIC', 'INTERNAL', 'RESTRICTED', 'ADMIN'],
+      enum: [
+        'PUBLIC', 'INTERNAL', 'RESTRICTED', 'ADMIN',
+        // Roles
+        'MANAGER', 'SALES', 'PROCUREMENT', 'ACCOUNTS', 'HR', 'IT', 'FINANCE', 'SOFTWARE_ENGINEER',
+        // Departments / Products
+        'STONE', 'COAL', 'TEA', 'RICE', 'TRANSPORT'
+      ],
       default: 'RESTRICTED'
     },
     checksum: { type: String, default: '' },

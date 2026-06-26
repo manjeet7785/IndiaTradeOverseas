@@ -76,6 +76,11 @@ async function checkAccess(user, doc) {
     return user.role === 'ADMIN';
   }
 
+  // Dynamic access check: if the accessLevel matches the user's role or department
+  if (doc.accessLevel === user.role || doc.accessLevel === user.department) {
+    return true;
+  }
+
   if (doc.ownerType === 'PAYMENT') {
     return user.role === 'ACCOUNTS';
   }

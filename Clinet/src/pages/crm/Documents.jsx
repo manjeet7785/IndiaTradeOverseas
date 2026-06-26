@@ -121,9 +121,22 @@ export default function Documents() {
       INTERNAL: 'bg-blue-100 text-blue-800 border-blue-200',
       RESTRICTED: 'bg-amber-100 text-amber-800 border-amber-200',
       ADMIN: 'bg-red-100 text-red-800 border-red-200',
+      MANAGER: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+      HR: 'bg-purple-100 text-purple-800 border-purple-200',
+      SALES: 'bg-sky-100 text-sky-800 border-sky-200',
+      ACCOUNTS: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+      FINANCE: 'bg-teal-100 text-teal-800 border-teal-200',
+      PROCUREMENT: 'bg-cyan-100 text-cyan-800 border-cyan-200',
+      IT: 'bg-slate-100 text-slate-800 border-slate-200',
+      SOFTWARE_ENGINEER: 'bg-zinc-100 text-zinc-800 border-zinc-200',
+      STONE: 'bg-amber-50 text-amber-700 border-amber-100',
+      COAL: 'bg-stone-100 text-stone-800 border-stone-200',
+      TEA: 'bg-lime-100 text-lime-800 border-lime-200',
+      RICE: 'bg-yellow-50 text-yellow-700 border-yellow-100',
+      TRANSPORT: 'bg-orange-100 text-orange-800 border-orange-200'
     };
 
-    const isLocked = level === 'RESTRICTED' || level === 'ADMIN';
+    const isLocked = level !== 'PUBLIC' && level !== 'INTERNAL';
 
     return (
       <span className={`inline-flex items-center space-x-1 px-2.5 py-1 rounded-full text-xs font-semibold border ${badgeStyles[level] || 'bg-gray-100 text-gray-800'}`}>
@@ -201,6 +214,19 @@ export default function Documents() {
                           <option value="INTERNAL">Internal</option>
                           <option value="RESTRICTED">Restricted</option>
                           <option value="ADMIN">Admin Only</option>
+                          <option value="MANAGER">Manager Only</option>
+                          <option value="HR">HR Only</option>
+                          <option value="SALES">Sales Only</option>
+                          <option value="ACCOUNTS">Accounts Only</option>
+                          <option value="FINANCE">Finance Only</option>
+                          <option value="PROCUREMENT">Procurement Only</option>
+                          <option value="IT">IT Only</option>
+                          <option value="SOFTWARE_ENGINEER">Software Engineer Only</option>
+                          <option value="STONE">Stone Department Only</option>
+                          <option value="COAL">Coal Department Only</option>
+                          <option value="TEA">Tea Department Only</option>
+                          <option value="RICE">Rice Department Only</option>
+                          <option value="TRANSPORT">Transport Department Only</option>
                         </select>
                       </div>
                     </td>
@@ -295,6 +321,19 @@ export default function Documents() {
                   <option value="INTERNAL">Internal</option>
                   <option value="RESTRICTED">Restricted</option>
                   <option value="ADMIN">Admin Only</option>
+                  <option value="MANAGER">Manager Only</option>
+                  <option value="HR">HR Only</option>
+                  <option value="SALES">Sales Only</option>
+                  <option value="ACCOUNTS">Accounts Only</option>
+                  <option value="FINANCE">Finance Only</option>
+                  <option value="PROCUREMENT">Procurement Only</option>
+                  <option value="IT">IT Only</option>
+                  <option value="SOFTWARE_ENGINEER">Software Engineer Only</option>
+                  <option value="STONE">Stone Department Only</option>
+                  <option value="COAL">Coal Department Only</option>
+                  <option value="TEA">Tea Department Only</option>
+                  <option value="RICE">Rice Department Only</option>
+                  <option value="TRANSPORT">Transport Department Only</option>
                 </select>
               </div>
 
