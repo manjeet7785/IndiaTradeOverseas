@@ -20,6 +20,11 @@ export const productsApi = {
     return response.data;
   },
 
+  async updateProduct(productId, productData) {
+    const response = await axiosInstance.put(`/products/${productId}`, productData);
+    return response.data;
+  },
+
   async getProductById(productId) {
     const response = await axiosInstance.get(`/products/${productId}`);
     return response.data;

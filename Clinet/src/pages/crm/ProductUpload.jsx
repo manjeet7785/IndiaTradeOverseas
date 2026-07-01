@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FiPlus, FiTag, FiDollarSign, FiGlobe, FiFileText, FiImage, FiGrid, FiUpload, FiTrash2 } from 'react-icons/fi';
+import { FiPlus, FiTag, FiDollarSign, FiGlobe, FiFileText, FiImage, FiGrid, FiUpload, FiTrash2, FiEdit2 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { productsApi } from '../../api/products';
 import { useAuth } from '../../hooks/useAuth';
@@ -82,6 +82,7 @@ export default function ProductUpload() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     category: 'stone',
@@ -137,13 +138,45 @@ export default function ProductUpload() {
     }
   };
 
+  const handleOpenUpload = () => {
+    setEditingProduct(null);
+    setFormData({
+      name: '',
+      category: 'stone',
+      origin: '',
+      price: '',
+      description: '',
+      image: ''
+    });
+    setShowModal(true);
+  };
+
+  const handleEditProduct = (product) => {
+    setEditingProduct(product);
+    setFormData({
+      name: product.name || '',
+      category: product.category || 'stone',
+      origin: product.origin || '',
+      price: product.price || '',
+      description: product.description || '',
+      image: product.image || product.imageUrl || ''
+    });
+    setShowModal(true);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await productsApi.createProduct(formData);
+      let response;
+      if (editingProduct) {
+        response = await productsApi.updateProduct(editingProduct._id, formData);
+      } else {
+        response = await productsApi.createProduct(formData);
+      }
       if (response.success) {
-        toast.success('Product uploaded successfully!');
+        toast.success(editingProduct ? 'Product updated successfully!' : 'Product uploaded successfully!');
         setShowModal(false);
+        setEditingProduct(null);
         setFormData({
           name: '',
           category: 'stone',
@@ -155,8 +188,8 @@ export default function ProductUpload() {
         fetchProducts();
       }
     } catch (error) {
-      console.error('Error creating product:', error);
-      toast.error(error.response?.data?.message || 'Failed to create product.');
+      console.error('Error submitting product:', error);
+      toast.error(error.response?.data?.message || `Failed to ${editingProduct ? 'update' : 'create'} product.`);
     }
   };
 
@@ -184,7 +217,7 @@ export default function ProductUpload() {
         </div>
         {(['ADMIN', 'MANAGER', 'IT', 'SOFTWARE_ENGINEER'].includes(user?.role) || user?.productUploadPermission) && (
           <button
-            onClick={() => setShowModal(true)}
+            onClick={handleOpenUpload}
             className="btn-primary bg-indigo-600 text-white hover:bg-indigo-700 px-4 py-2.5 rounded-xl flex items-center space-x-2 shadow-lg transition-transform active:scale-95"
           >
             <FiPlus size={20} />
@@ -236,13 +269,22 @@ export default function ProductUpload() {
                     <span>Origin: <strong>{product.origin}</strong></span>
                   </div>
                   {canDelete && (
-                    <button
-                      onClick={() => handleDeleteProduct(product._id)}
-                      className="p-2 text-red-600 hover:text-white hover:bg-red-600 rounded-xl border border-red-200 transition-all duration-150 cursor-pointer active:scale-95 flex items-center justify-center"
-                      title="Delete Product"
-                    >
-                      <FiTrash2 size={16} />
-                    </button>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => handleEditProduct(product)}
+                        className="p-2 text-indigo-600 hover:text-white hover:bg-indigo-600 rounded-xl border border-indigo-200 transition-all duration-150 cursor-pointer active:scale-95 flex items-center justify-center"
+                        title="Edit Product"
+                      >
+                        <FiEdit2 size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteProduct(product._id)}
+                        className="p-2 text-red-600 hover:text-white hover:bg-red-600 rounded-xl border border-red-200 transition-all duration-150 cursor-pointer active:scale-95 flex items-center justify-center"
+                        title="Delete Product"
+                      >
+                        <FiTrash2 size={16} />
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -256,9 +298,14 @@ export default function ProductUpload() {
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden border border-slate-100 max-h-[90vh] flex flex-col">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center shrink-0">
-              <h3 className="text-lg font-bold text-slate-800">Add New Commodity to Catalog</h3>
+              <h3 className="text-lg font-bold text-slate-800">
+                {editingProduct ? 'Edit Commodity details' : 'Add New Commodity to Catalog'}
+              </h3>
               <button
-                onClick={() => setShowModal(false)}
+                onClick={() => {
+                  setShowModal(false);
+                  setEditingProduct(null);
+                }}
                 className="text-gray-400 hover:text-gray-600"
               >
                 ✕
@@ -375,11 +422,14 @@ export default function ProductUpload() {
                   type="submit"
                   className="flex-1 py-2.5 text-sm font-semibold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 transition"
                 >
-                  Create Product
+                  {editingProduct ? 'Update Product' : 'Create Product'}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => {
+                    setShowModal(false);
+                    setEditingProduct(null);
+                  }}
                   className="flex-1 py-2.5 text-sm font-semibold rounded-xl text-slate-700 bg-slate-100 hover:bg-slate-200 transition"
                 >
                   Cancel

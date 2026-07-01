@@ -16,9 +16,14 @@ async function deleteProduct(id) {
   return Product.findByIdAndDelete(id);
 }
 
+async function updateProduct(id, data) {
+  return Product.findByIdAndUpdate(id, data, { new: true });
+}
+
 module.exports = {
   listProducts,
   createProduct,
   getProductById,
-  deleteProduct
+  deleteProduct,
+  updateProduct
 };

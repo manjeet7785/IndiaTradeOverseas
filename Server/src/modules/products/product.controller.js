@@ -67,9 +67,37 @@ async function getProduct(req, res, next) {
   }
 }
 
+async function updateProduct(req, res, next) {
+  try {
+    const product = await productService.getProductById(req.params.id);
+    if (!product) {
+      return fail(res, 404, 'NOT_FOUND', 'Product not found');
+    }
+
+    // Allow update only if user is Admin or user is the creator of the product
+    const isAdmin = req.user.role === 'ADMIN';
+    const isCreator = product.createdBy && product.createdBy.toString() === req.user._id.toString();
+
+    if (!isAdmin && !isCreator) {
+      return fail(
+        res,
+        403,
+        'OWNERSHIP_FORBIDDEN',
+        'Forbidden: You are not authorized to update this product'
+      );
+    }
+
+    const updatedProduct = await productService.updateProduct(req.params.id, req.body);
+    return ok(res, { product: updatedProduct }, 'Product updated successfully', 200, req);
+  } catch (error) {
+    next(error);
+  }
+}
+
 module.exports = {
   getProducts,
   createProduct,
   deleteProduct,
-  getProduct
+  getProduct,
+  updateProduct
 };

@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const { authenticate } = require('../../middlewares/auth.middleware');
-const { getProducts, createProduct, deleteProduct, getProduct } = require('./product.controller');
+const { getProducts, createProduct, deleteProduct, getProduct, updateProduct } = require('./product.controller');
 const { fail } = require('../../utils/response');
 
 const checkProductPermission = (req, res, next) => {
@@ -27,6 +27,13 @@ router.post(
   authenticate,
   checkProductPermission,
   createProduct
+);
+
+router.put(
+  '/:id',
+  authenticate,
+  checkProductPermission,
+  updateProduct
 );
 
 router.delete(
