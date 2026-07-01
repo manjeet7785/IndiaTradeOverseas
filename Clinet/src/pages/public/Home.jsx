@@ -52,30 +52,31 @@ export default function Landing() {
   ];
 
   const products = [
-    {
-      name: 'RM Natural Unpolished Decorative Pebbles for Home & Garden Decor',
-      image: 'https://m.media-amazon.com/images/I/61FSFnx6r-L._SL1024_.jpg',
-      category: 'Minerals & Construction',
-      description: 'RM Natural Unpolished Decorative Pebbles for Home & Garden Decor (5kg, Rainbow, 20-50mm) | Raw Natural Stones for Landscaping, Plant Pots, Fillers, Aquarium, Pathways, Indoor Outdoor Use'
+  
+  {
+      id: 1,
+      origin: 'India',
+      name: 'Jharia Jharkhand Coal',
+      image: 'https://tiimg.tistatic.com/fp/1/008/230/99-purity-natural-black-coal-for-industrial-use-842.jpg',
+      category: 'coal',
+      description: 'Jharia Jharkhand Coal'
     },
     {
-      name: 'Solid Natural Stone ',
-      image: 'https://encrypted-tbn1.gstatic.com/shopping?q=tbn:ANd9GcSwiWjzogncwMWMQlEe7c4SMhst0Rle2wP7KS9PYFWU0FmAqF4zXlPU0XT9fKdA1v4MDDMoqhkqnthlc5Qwnada7xkk1BMW',
-      category: 'Construction',
-      description: 'Solid Natural Stone- 60 mm Size, Heat-Resistant and Durable for Building Applications'
+      id: 2,
+      origin: 'India',
+      name: 'Jharkhand Coal ',
+      image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR8IbtVGkg34mUsY_o5fccaQy5iSmtkXjH6J_JDAP6YKN9uR2-Vm_ShuNk&s=10',
+      category: 'coal',
+      description: 'Jharkhand Coal'
     },
     {
-      name: 'Reflectix Expansion Joint',
-      image: 'https://m.media-amazon.com/images/I/41AWyJc1pWL._AC_UF1000,1000_QL80_.jpg',
-      category: 'Construction',
-      description: 'Reflectix Expansion Joint.'
+      id: 3,
+      origin: 'India',
+      name: 'Indonesian Steam Coal - Dimension (L*w*h): 20 Millimeter (Mm)',
+      image: 'https://cpimg.tistatic.com/10890150/b/4/Indonesian-Steam-Coal..jpg',
+      category: 'coal',
+      description: 'Indonesian Steam Coal - Dimension (L*w*h): 20 Millimeter (Mm)'
     },
-    {
-      name: 'Gfrp Fiberglass Bar, Epoxy Composite Fiberglass Rebar',
-      image: "https://encrypted-tbn1.gstatic.com/shopping?q=tbn:ANd9GcTz7SO8-Tud-Feg53A0TptPFRY6zRCkI7Z5Abg_KC4fCccB7MSJWB9rDk7yZr-to8vgPoVt42xMlRJP6YY4JTVhuM0WUBDM",
-      category: 'Fiberglass Rebar',
-      description: 'Gfrp Fiberglass Bar, Epoxy Composite Fiberglass Rebar'
-    }
   ];
 
   const steps = [
